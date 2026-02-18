@@ -78,15 +78,20 @@ function M.commands(opts)
             local matches = vim.fn.getcompletion(input, "cmdline")
             local prefix = input:match "^'[<a-z],'[>a-z]" or input:match "^%d+,%d+"
             if prefix then
-                local new_matches = {}
-                for _, m in ipairs(matches) do
-                    if not vim.startswith(m, prefix) then
-                        table.insert(new_matches, prefix .. m)
-                    else
-                        table.insert(new_matches, m)
+                local remainder = input:sub(#prefix + 1)
+                -- Only prepend prefix if the remainder doesn't contain a separator.
+                -- If it does, util.complete_line will handle preserving the whole input as prefix.
+                if not remainder:match "[%s%.%/:\\\\]" then
+                    local new_matches = {}
+                    for _, m in ipairs(matches) do
+                        if not vim.startswith(m, prefix) then
+                            table.insert(new_matches, prefix .. m)
+                        else
+                            table.insert(new_matches, m)
+                        end
                     end
+                    return new_matches
                 end
-                return new_matches
             end
             return matches
         end,
