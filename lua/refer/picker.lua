@@ -305,6 +305,10 @@ function Picker:close()
         active_picker = nil
     end
 
+    if api.nvim_win_is_valid(self.original_win) then
+        api.nvim_set_current_win(self.original_win)
+    end
+
     self.current_matches = nil
     self.items_or_provider = nil
     self.marked = nil
