@@ -82,6 +82,23 @@ function M.complete_line(input, selection)
     end
 
     local prefix = input:match "^(.*[%s%.%/:\\\\])" or ""
+    local tail_start = #prefix + 1
+
+    -- Check for overlap between end of input and start of selection
+    for i = 0, #input - 1 do
+        local suffix_start = i + 1
+        local suffix = input:sub(suffix_start)
+        if #suffix > 0 and vim.startswith(selection, suffix) then
+            local has_sep = suffix:match "[%s%.%/:\\\\]"
+            local covers_tail = suffix_start <= tail_start
+
+            if has_sep or covers_tail then
+                return input:sub(1, i) .. selection
+            end
+            break
+        end
+    end
+
     return prefix .. selection
 end
 

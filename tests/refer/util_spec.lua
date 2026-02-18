@@ -73,6 +73,29 @@ describe("refer.util", function()
         it("handles spaces as separators", function()
             assert.are.same("command argument", util.complete_line("command arg", "argument"))
         end)
+
+        it("handles overlapping path components correctly", function()
+            -- Original bug case: :e lua/ + lua/custom/ -> :e lua/custom/
+            assert.are.same(":e lua/custom/", util.complete_line(":e lua/", "lua/custom/"))
+        end)
+
+        it("handles partial overlapping path components", function()
+            -- :e lua + lua/custom/ -> :e lua/custom/
+            assert.are.same(":e lua/custom/", util.complete_line(":e lua", "lua/custom/"))
+        end)
+
+        it("handles simple overlapping strings", function()
+            assert.are.same("abcde", util.complete_line("abc", "abcde"))
+        end)
+
+        it("handles no overlap correctly", function()
+            assert.are.same(":e lua/", util.complete_line(":e ", "lua/"))
+        end)
+
+        it("handles standard fallback when no overlap", function()
+            assert.are.same("folder/edit", util.complete_line("folder/file", "edit"))
+            assert.are.same("foo.baz", util.complete_line("foo.bar", "baz"))
+        end)
     end)
 
     describe("get_relative_path", function()
