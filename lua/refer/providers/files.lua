@@ -104,14 +104,14 @@ function M.grep_word(opts)
     local function get_selection()
         local mode = vim.fn.mode()
         if mode == "v" or mode == "V" or mode == "\22" then
-            local saved_reg = vim.fn.getreg("v")
-            local saved_type = vim.fn.getregtype("v")
-            vim.cmd('noau normal! "vy')
-            local selection = vim.fn.getreg("v")
+            local saved_reg = vim.fn.getreg "v"
+            local saved_type = vim.fn.getregtype "v"
+            vim.cmd 'noau normal! "vy'
+            local selection = vim.fn.getreg "v"
             vim.fn.setreg("v", saved_reg, saved_type)
             return selection
         else
-            return vim.fn.expand("<cword>")
+            return vim.fn.expand "<cword>"
         end
     end
 
@@ -129,7 +129,7 @@ function M.grep_word(opts)
     end
 
     local cmd
-    if vim.fn.executable("rg") == 1 then
+    if vim.fn.executable "rg" == 1 then
         cmd = { "rg", "--vimgrep", "--smart-case", "--fixed-strings", "--", query }
     else
         cmd = { "grep", "-rnH", "-F", "--", query, "." }
