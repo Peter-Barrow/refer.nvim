@@ -31,6 +31,9 @@ local subcommands = {
     Declarations = function(opts)
         require("refer.providers.lsp").declarations(opts)
     end,
+    Selection = function(opts)
+        require("refer.providers.files").grep_word(opts)
+    end,
 }
 
 vim.api.nvim_create_user_command("Refer", function(opts)

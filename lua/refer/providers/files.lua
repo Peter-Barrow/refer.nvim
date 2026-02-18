@@ -96,4 +96,74 @@ function M.live_grep(opts)
     )
 end
 
+---Search for current word/selection using rg/grep
+---@param opts? table Options
+function M.grep_word(opts)
+    opts = opts or {}
+
+    local function get_selection()
+        local mode = vim.fn.mode()
+        if mode == "v" or mode == "V" or mode == "\22" then
+            local saved_reg = vim.fn.getreg("v")
+            local saved_type = vim.fn.getregtype("v")
+            vim.cmd('noau normal! "vy')
+            local selection = vim.fn.getreg("v")
+            vim.fn.setreg("v", saved_reg, saved_type)
+            return selection
+        else
+            return vim.fn.expand("<cword>")
+        end
+    end
+
+    local query = get_selection()
+    if not query or query == "" then
+        vim.notify("Refer: No text to search", vim.log.levels.WARN)
+        return
+    end
+
+    -- Clean up query (e.g. remove newlines)
+    local clean_query = query:gsub("\n", " ")
+    local display_query = clean_query
+    if #display_query > 20 then
+        display_query = display_query:sub(1, 17) .. "..."
+    end
+
+    local cmd
+    if vim.fn.executable("rg") == 1 then
+        cmd = { "rg", "--vimgrep", "--smart-case", "--fixed-strings", "--", query }
+    else
+        cmd = { "grep", "-rnH", "-F", "--", query, "." }
+    end
+
+    local picker = refer.pick(
+        { "Searching..." },
+        util.jump_to_location,
+        vim.tbl_deep_extend("force", {
+            prompt = "Grep (" .. display_query .. ") > ",
+            parser = util.parsers.grep,
+            keymaps = {
+                ["<Tab>"] = "toggle_mark",
+                ["<CR>"] = "select_entry",
+            },
+        }, opts)
+    )
+
+    vim.system(cmd, { text = true }, function(out)
+        local items = {}
+        if out.code == 0 and out.stdout then
+            items = vim.split(out.stdout, "\n", { trimempty = true })
+        elseif out.code == 1 then
+            items = { "No matches found for: " .. display_query }
+        else
+            items = { "Error: " .. (out.stderr or "Unknown error") }
+        end
+
+        vim.schedule(function()
+            picker:set_items(items)
+        end)
+    end)
+
+    return picker
+end
+
 return M
