@@ -31,6 +31,9 @@ local subcommands = {
     Declarations = function(opts)
         require("refer.providers.lsp").declarations(opts)
     end,
+    LspServers = function(opts)
+        require("refer.providers.lsp").lsp_servers(opts)
+    end,
     Selection = function(opts)
         require("refer.providers.files").grep_word(opts)
     end,

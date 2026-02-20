@@ -113,4 +113,143 @@ function M.declarations(opts)
     lsp_request("textDocument/declaration", "declarations", "LSP Declarations", opts)
 end
 
+---@class LspServerItem
+---@field name string
+---@field file string|nil
+---@field active boolean
+---@field config table|nil
+---@field registered_config table|nil
+
+---Get all LSP server configurations from active clients, registry, and runtime files
+---@return LspServerItem[]
+local function get_lsp_configs()
+    local config_map = {}
+
+    for _, client in ipairs(vim.lsp.get_clients()) do
+        config_map[client.name] = {
+            name = client.name,
+            active = true,
+            config = client.config,
+        }
+    end
+
+    if vim.lsp.config and vim.lsp._enabled_configs then
+        for name, config in pairs(vim.lsp._enabled_configs) do
+            if not config_map[name] and name ~= "*" then
+                config_map[name] = {
+                    name = name,
+                    active = false,
+                    config = config,
+                }
+            else
+                config_map[name].registered_config = config
+            end
+        end
+    end
+
+    local files = vim.api.nvim_get_runtime_file("after/lsp/*.lua", true)
+    vim.list_extend(files, vim.api.nvim_get_runtime_file("lsp/*.lua", true))
+
+    for _, file in ipairs(files) do
+        local name = vim.fn.fnamemodify(file, ":t:r")
+        if not config_map[name] then
+            config_map[name] = {
+                name = name,
+                active = false,
+                file = file,
+            }
+        else
+            config_map[name].file = file
+        end
+    end
+
+    local configs = {}
+    for _, conf in pairs(config_map) do
+        table.insert(configs, conf)
+    end
+    table.sort(configs, function(a, b)
+        return a.name < b.name
+    end)
+
+    return configs
+end
+
+---Show picker for LSP servers with ability to start/stop
+---Lists all configured LSP servers and shows which are active
+function M.lsp_servers(opts)
+    local configs = get_lsp_configs()
+    local items = {}
+    local lookup = {}
+
+    for _, config in ipairs(configs) do
+        local is_active = config.active
+
+        local display_text = (is_active and "● " or "○ ") .. config.name
+        table.insert(items, display_text)
+        lookup[display_text] = config
+    end
+
+    if #items == 0 then
+        vim.notify("Refer: No LSP configurations found", vim.log.levels.WARN)
+        return
+    end
+
+    refer.pick(
+        items,
+        function(selection, _)
+            local item = lookup[selection]
+            if not item then
+                return
+            end
+
+            if item.active then
+                local clients = vim.lsp.get_clients { name = item.name }
+                for _, client in ipairs(clients) do
+                    vim.lsp.stop_client(client.id)
+                end
+                vim.notify("Stopped LSP: " .. item.name, vim.log.levels.INFO)
+            else
+                local config = {}
+
+                if item.file then
+                    local ok, loaded_config = pcall(dofile, item.file)
+                    if ok and type(loaded_config) == "table" then
+                        config = loaded_config
+                    end
+                elseif item.registered_config then
+                    config = item.registered_config
+                elseif item.config then
+                    config = item.config
+                end
+
+                config.name = config.name or item.name
+
+                if not config.root_dir then
+                    if config.root_markers then
+                        config.root_dir = vim.fs.root(0, config.root_markers)
+                    end
+                    if not config.root_dir then
+                        config.root_dir = vim.fn.getcwd()
+                    end
+                end
+
+                local client_id = vim.lsp.start(config)
+                if client_id then
+                    vim.notify("Started LSP: " .. item.name, vim.log.levels.INFO)
+                else
+                    vim.notify("Failed to start LSP: " .. item.name, vim.log.levels.ERROR)
+                end
+            end
+        end,
+        vim.tbl_deep_extend("force", {
+            prompt = "LSP Servers > ",
+            keymaps = {
+                ["<S-Tab>"] = "prev_item",
+                ["<Tab>"] = "next_item",
+                ["<CR>"] = "select_entry",
+            },
+        }, opts or {})
+    )
+end
+
 return M
