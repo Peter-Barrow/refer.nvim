@@ -108,6 +108,7 @@ Use `:Refer <subcommand>` to launch pickers:
 | `Definitions` | Go to LSP definition for symbol under cursor |
 | `Implementations` | Go to LSP implementation for symbol under cursor |
 | `Declarations` | Go to LSP declaration for symbol under cursor |
+| `LspServers`  | Manage LSP servers (start/stop)              |
 
 ## Tutorials & Advanced Usage
 
@@ -417,6 +418,7 @@ require("refer").setup({
     ui = {
         mark_char = "●",
         mark_hl = "String",
+        input_position = "top", -- "top" or "bottom"
         winhighlight = "Normal:Normal,FloatBorder:Normal,WinSeparator:Normal,StatusLine:Normal,StatusLineNC:Normal",
         highlights = {
             prompt = "Title",

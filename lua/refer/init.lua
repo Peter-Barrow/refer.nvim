@@ -20,6 +20,7 @@ local default_opts = {
     ui = {
         mark_char = "●",
         mark_hl = "String",
+        input_position = "top",
         winhighlight = "Normal:Normal,FloatBorder:Normal,WinSeparator:Normal,StatusLine:Normal,StatusLineNC:Normal",
         highlights = {
             prompt = "Title",
