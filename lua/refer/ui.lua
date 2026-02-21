@@ -173,9 +173,17 @@ function UI:render(matches, selected_index, marked)
         end
     end
 
+    local reverse_result = self.opts.ui and self.opts.ui.reverse_result
+
     local visible_matches = {}
-    for i = start_idx, end_idx do
-        table.insert(visible_matches, matches[i])
+    if reverse_result then
+        for i = end_idx, start_idx, -1 do
+            table.insert(visible_matches, matches[i])
+        end
+    else
+        for i = start_idx, end_idx do
+            table.insert(visible_matches, matches[i])
+        end
     end
 
     api.nvim_buf_set_lines(self.results_buf, 0, -1, false, visible_matches)
@@ -201,7 +209,12 @@ function UI:render(matches, selected_index, marked)
         end
     end
 
-    local relative_selected_idx = selected_index - start_idx + 1
+    local relative_selected_idx
+    if self.opts.ui and self.opts.ui.reverse_result then
+        relative_selected_idx = end_idx - selected_index + 1
+    else
+        relative_selected_idx = selected_index - start_idx + 1
+    end
     if relative_selected_idx > 0 and relative_selected_idx <= #visible_matches then
         local selected_text = visible_matches[relative_selected_idx]
         local selection_hl = "Visual"

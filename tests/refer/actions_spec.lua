@@ -31,6 +31,47 @@ describe("refer.actions", function()
         assert.is_false(picker.marked["item1"])
     end)
 
+    describe("reversed results navigation", function()
+        before_each(function()
+            picker.opts.ui = { reverse_result = true }
+            picker.current_matches = { "A", "B", "C" }
+        end)
+
+        it("prev_item (Up) increments index (moves visually up)", function()
+            picker.selected_index = 1
+
+            picker.actions.prev_item()
+
+            assert.are.equal(2, picker.selected_index)
+
+            picker.actions.prev_item()
+
+            assert.are.equal(3, picker.selected_index)
+        end)
+
+        it("next_item (Down) decrements index (moves visually down)", function()
+            picker.selected_index = 3
+
+            picker.actions.next_item()
+
+            assert.are.equal(2, picker.selected_index)
+
+            picker.actions.next_item()
+
+            assert.are.equal(1, picker.selected_index)
+        end)
+
+        it("handles wrapping correctly in reverse", function()
+            picker.selected_index = 3
+            picker.actions.prev_item()
+            assert.are.equal(1, picker.selected_index)
+
+            picker.selected_index = 1
+            picker.actions.next_item()
+            assert.are.equal(3, picker.selected_index)
+        end)
+    end)
+
     describe("send_to_qf", function()
         before_each(function()
             stub(vim.fn, "setqflist")
