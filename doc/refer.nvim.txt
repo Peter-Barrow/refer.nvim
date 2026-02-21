@@ -1,4 +1,4 @@
-*refer.nvim.txt*       For Neovim >= 0.10.0      Last change: 2026 February 20
+*refer.nvim.txt*       For Neovim >= 0.10.0      Last change: 2026 February 21
 
 ==============================================================================
 Table of Contents                               *refer.nvim-table-of-contents*
@@ -455,6 +455,7 @@ The default configuration with all available options:
             mark_char = "●",
             mark_hl = "String",
             input_position = "top", -- "top" or "bottom"
+            reverse_result = false,
             winhighlight = "Normal:Normal,FloatBorder:Normal,WinSeparator:Normal,StatusLine:Normal,StatusLineNC:Normal",
             highlights = {
                 prompt = "Title",
