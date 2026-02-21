@@ -215,4 +215,7 @@ function M.has_blink()
     return blink.is_available()
 end
 
+-- Exposed for testing (internal API, not for external use)
+M._simple_fuzzy_score = simple_fuzzy_score
+
 return M
