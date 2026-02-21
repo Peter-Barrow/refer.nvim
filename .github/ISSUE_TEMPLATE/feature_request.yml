@@ -1,0 +1,97 @@
+name: Feature Request
+description: Suggest a new feature or improvement for refer.nvim
+title: "[Feature] "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Summary
+        Briefly describe the feature you'd like to see added.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A one-paragraph summary of the feature.
+      placeholder: "Add support for ..."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Problem or Motivation
+        Explain why this feature would be useful. What problem does it solve?
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Problem / Motivation
+      description: |
+        Describe the problem you are facing or the motivation behind this request.
+        How does your current workflow suffer without this feature?
+      placeholder: |
+        Example: I often need to pick from a list of 100+ items, but the current
+        picker doesn't support fuzzy filtering. This makes it hard to find what
+        I'm looking for quickly.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Proposed Solution
+        Describe your proposed solution for the feature.
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        Describe how you would like this feature to work.
+        Include any API ideas or configuration options if applicable.
+      placeholder: |
+        Example: Add a new option `fuzzy_filter = true` that enables fuzzy
+        matching on the results list, independent of the initial search.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Alternatives Considered
+        Have you considered any alternative solutions?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: |
+        List any alternative solutions or workarounds you've considered.
+        Why were they not sufficient?
+      placeholder: "I could use telescope-pickers, but I prefer refer's minimal UI..."
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Additional Context
+        Add any other context, mockups, or reference implementations about the feature request here.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      placeholder: "Screenshots, code examples, links to similar features in other plugins..."
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Verification
+      options:
+        - label: I have searched for existing feature requests
+          required: true
+        - label: I understand this is a feature request and not a bug report
+          required: true
