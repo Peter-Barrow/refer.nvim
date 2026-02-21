@@ -130,7 +130,7 @@ describe("refer.util", function()
         it("returns true for file containing null bytes", function()
             local path = tmpdir .. "/binary.bin"
             local f = io.open(path, "wb")
-            f:write("hello\0world")
+            f:write "hello\0world"
             f:close()
             assert.is_true(util.is_binary(path))
         end)
@@ -138,7 +138,7 @@ describe("refer.util", function()
         it("returns false for plain text file", function()
             local path = tmpdir .. "/text.txt"
             local f = io.open(path, "w")
-            f:write("hello world\nline two\n")
+            f:write "hello world\nline two\n"
             f:close()
             assert.is_false(util.is_binary(path))
         end)
@@ -162,7 +162,7 @@ describe("refer.util", function()
         it("returns the correct line from a file on disk", function()
             local path = tmpdir .. "/lines.txt"
             local f = io.open(path, "w")
-            f:write("line one\nline two\nline three\n")
+            f:write "line one\nline two\nline three\n"
             f:close()
             assert.are.same("line two", util.get_line_content(path, 2))
         end)
@@ -174,7 +174,7 @@ describe("refer.util", function()
         it("returns empty string for out-of-range line number", function()
             local path = tmpdir .. "/short.txt"
             local f = io.open(path, "w")
-            f:write("only one line\n")
+            f:write "only one line\n"
             f:close()
             assert.are.same("", util.get_line_content(path, 99))
         end)
@@ -182,7 +182,7 @@ describe("refer.util", function()
         it("returns line from a loaded buffer", function()
             local path = tmpdir .. "/buf.txt"
             local f = io.open(path, "w")
-            f:write("disk content\n")
+            f:write "disk content\n"
             f:close()
 
             vim.cmd("edit " .. vim.fn.fnameescape(path))
@@ -197,7 +197,7 @@ describe("refer.util", function()
 
     describe("parsers.lsp", function()
         it("parses filename:lnum:col:content format", function()
-            local result = util.parsers.lsp("src/init.lua:10:5:some content")
+            local result = util.parsers.lsp "src/init.lua:10:5:some content"
             assert.are.same({
                 filename = "src/init.lua",
                 lnum = 10,
@@ -207,7 +207,7 @@ describe("refer.util", function()
         end)
 
         it("parses filename:lnum:col format without content", function()
-            local result = util.parsers.lsp("src/init.lua:10:5")
+            local result = util.parsers.lsp "src/init.lua:10:5"
             assert.are.same({
                 filename = "src/init.lua",
                 lnum = 10,
@@ -218,7 +218,7 @@ describe("refer.util", function()
 
     describe("parsers.buffer", function()
         it("parses bufnr: filename:lnum:col format", function()
-            local result = util.parsers.buffer("5: src/main.lua:20:3")
+            local result = util.parsers.buffer "5: src/main.lua:20:3"
             assert.are.same({
                 bufnr = 5,
                 filename = "src/main.lua",
@@ -228,7 +228,7 @@ describe("refer.util", function()
         end)
 
         it("returns nil for non-matching input", function()
-            assert.is_nil(util.parsers.buffer("not a buffer line"))
+            assert.is_nil(util.parsers.buffer "not a buffer line")
         end)
     end)
 

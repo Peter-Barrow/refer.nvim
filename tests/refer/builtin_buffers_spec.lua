@@ -27,10 +27,10 @@ describe("builtin.buffers", function()
         local file1 = tmpdir .. "/file1.lua"
         local file2 = tmpdir .. "/file2.lua"
         local f1 = io.open(file1, "w")
-        f1:write("content1\n")
+        f1:write "content1\n"
         f1:close()
         local f2 = io.open(file2, "w")
-        f2:write("content2\n")
+        f2:write "content2\n"
         f2:close()
 
         vim.cmd("edit " .. vim.fn.fnameescape(file1))
@@ -56,7 +56,7 @@ describe("builtin.buffers", function()
     it("formats entries as bufnr: path:lnum:col", function()
         local file = tmpdir .. "/formatted.lua"
         local f = io.open(file, "w")
-        f:write("line\n")
+        f:write "line\n"
         f:close()
 
         vim.cmd("edit " .. vim.fn.fnameescape(file))
@@ -77,7 +77,7 @@ describe("builtin.buffers", function()
     it("skips unlisted buffers", function()
         local file = tmpdir .. "/unlisted.lua"
         local f = io.open(file, "w")
-        f:write("content\n")
+        f:write "content\n"
         f:close()
 
         vim.cmd("edit " .. vim.fn.fnameescape(file))
@@ -116,7 +116,7 @@ describe("builtin.old_files", function()
     it("lists readable files from v:oldfiles", function()
         local file = tmpdir .. "/old.lua"
         local f = io.open(file, "w")
-        f:write("old content\n")
+        f:write "old content\n"
         f:close()
 
         vim.v.oldfiles = { file }
