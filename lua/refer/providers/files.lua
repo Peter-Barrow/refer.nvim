@@ -5,6 +5,28 @@ local refer = require "refer"
 local util = require "refer.util"
 local fuzzy = require "refer.fuzzy"
 
+---Escape special regex characters for fd's Rust regex engine
+---@param s string
+---@return string
+local function escape_fd_regex(s)
+    return (s:gsub("([%.%+%*%?%[%]%(%)%{%}%|%^%$\\])", "\\%1"))
+end
+
+---Build an fd-compatible regex pattern from a path query containing "/"
+---Each segment is joined with [^/]*\/.*  to allow arbitrary intermediate directories
+---Example: "prov/files" -> "prov[^/]*/.*files"
+---         "lua/ref/init" -> "lua[^/]*/.*ref[^/]*/.*init"
+---@param query string
+---@return string
+local function build_path_regex(query)
+    local segments = vim.split(query, "/", { trimempty = true })
+    local escaped = {}
+    for _, seg in ipairs(segments) do
+        table.insert(escaped, escape_fd_regex(seg))
+    end
+    return table.concat(escaped, "[^/]*/.*")
+end
+
 ---Open file picker using fd command
 ---Files are loaded asynchronously after minimum query length is reached
 function M.files(opts)
@@ -33,9 +55,16 @@ function M.files(opts)
                 table.insert(cmd, "--exclude")
                 table.insert(cmd, dir)
             end
-            table.insert(cmd, "--")
 
-            table.insert(cmd, query:sub(1, 2))
+            if query:find("/", 1, true) then
+                table.insert(cmd, "--full-path")
+                table.insert(cmd, "--")
+                table.insert(cmd, build_path_regex(query))
+            else
+                table.insert(cmd, "--")
+                table.insert(cmd, query:sub(1, 2))
+            end
+
             return cmd
         end,
         nil,
@@ -165,5 +194,9 @@ function M.grep_word(opts)
 
     return picker
 end
+
+-- Exposed for testing (internal API, not for external use)
+M._escape_fd_regex = escape_fd_regex
+M._build_path_regex = build_path_regex
 
 return M
