@@ -9,6 +9,7 @@ Table of Contents                               *refer.nvim-table-of-contents*
   - Installation                                     |refer.nvim-installation|
   - Commands                                             |refer.nvim-commands|
   - Tutorials & Advanced Usage         |refer.nvim-tutorials-&-advanced-usage|
+  - Creating Extensions                       |refer.nvim-creating-extensions|
   - Configuration Reference               |refer.nvim-configuration-reference|
 
 
@@ -144,6 +145,7 @@ TUTORIALS & ADVANCED USAGE             *refer.nvim-tutorials-&-advanced-usage*
     - |refer.nvim-static-list-picker|
     - |refer.nvim-async-command-picker|
     - |refer.nvim-enabling-previews-for-custom-items|
+- |refer.nvim-creating-extensions|
 
 
 REPLACING VIM.UI.SELECT ~
@@ -431,6 +433,26 @@ heading is found.
         }
     )
 <
+
+
+CREATING EXTENSIONS                           *refer.nvim-creating-extensions*
+
+You can register new `:Refer` subcommands from your `init.lua` or from
+third-party plugins.
+
+>lua
+    local refer = require("refer")
+    
+    refer.add_command("MyPicker", function(opts)
+        refer.pick({ "Choice A", "Choice B" }, function(selection)
+            print("Selected: " .. selection)
+        end, {
+            prompt = "My Picker > "
+        })
+    end)
+<
+
+Now you can run `:Refer MyPicker` and it will appear in tab completion.
 
 
 CONFIGURATION REFERENCE                   *refer.nvim-configuration-reference*
