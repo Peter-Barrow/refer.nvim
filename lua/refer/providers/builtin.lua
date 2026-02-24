@@ -70,6 +70,75 @@ function M.commands(opts)
         default_text = "'<,'>"
     end
 
+    local preview_applied = false
+    local original_win = vim.api.nvim_get_current_win()
+    local original_buf = vim.api.nvim_win_get_buf(original_win)
+
+    local function cleanup_preview()
+        if preview_applied then
+            vim.api.nvim_buf_call(original_buf, function()
+                pcall(vim.cmd, "silent! undo")
+            end)
+            preview_applied = false
+        end
+    end
+
+    local function do_sub_preview(input)
+        cleanup_preview()
+
+        -- Strip optional *do prefix (cdo, cfdo, argdo, bufdo, windo, tabdo)
+        -- before matching the substitute pattern, so preview works for both
+        -- plain substitutes and do-command substitutes.
+        local do_cmd, do_rest = input:match "^([a-z]*do)%s+(.*)$"
+        local stripped = do_rest or input
+
+        local range, sep = stripped:match "^([%%'%d,$.<>]*)s(.)"
+        if not sep or sep:match "[%w%s]" then
+            return
+        end
+
+        -- When a *do prefix was present, apply the substitute across the whole
+        -- buffer for preview (the real do-loop runs per-line on confirm).
+        if do_cmd then
+            if range == "" or range == nil then
+                stripped = "%" .. stripped
+            end
+        end
+        input = stripped
+
+        local unescaped_count = 0
+        local i = 1
+        while i <= #input do
+            local c = input:sub(i, i)
+            if c == "\\" then
+                i = i + 2
+            elseif c == sep then
+                unescaped_count = unescaped_count + 1
+                i = i + 1
+            else
+                i = i + 1
+            end
+        end
+
+        local preview_input = input
+        if unescaped_count >= 3 then
+            local esc_sep = sep:gsub("%W", "%%%1")
+            local match_flags = input:match(esc_sep .. "([&cegiInp#lr]*)$")
+            if match_flags and match_flags:match "c" then
+                local new_flags = match_flags:gsub("c", "")
+                preview_input = input:sub(1, -(#match_flags + 1)) .. new_flags
+            end
+        end
+
+        vim.api.nvim_buf_call(original_buf, function()
+            vim.cmd "let &ul=&ul"
+            local ok = pcall(vim.cmd, "noautocmd keepjumps " .. preview_input)
+            if ok then
+                preview_applied = true
+            end
+        end)
+    end
+
     return refer.pick(
         function(input)
             if input == "" then
@@ -79,8 +148,6 @@ function M.commands(opts)
             local prefix = input:match "^'[<a-z],'[>a-z]" or input:match "^%d+,%d+"
             if prefix then
                 local remainder = input:sub(#prefix + 1)
-                -- Only prepend prefix if the remainder doesn't contain a separator.
-                -- If it does, util.complete_line will handle preserving the whole input as prefix.
                 if not remainder:match "[%s%.%/:\\\\]" then
                     local new_matches = {}
                     for _, m in ipairs(matches) do
@@ -96,6 +163,7 @@ function M.commands(opts)
             return matches
         end,
         function(input_text)
+            cleanup_preview()
             vim.fn.histadd("cmd", input_text)
             vim.cmd(input_text)
         end,
@@ -110,6 +178,38 @@ function M.commands(opts)
                     cycle_history(builtin, -1)
                 end,
             },
+            on_change = function(input, update_ui_callback)
+                do_sub_preview(input)
+
+                local matches
+                if input == "" then
+                    matches = vim.fn.getcompletion("", "command")
+                else
+                    matches = vim.fn.getcompletion(input, "cmdline")
+                    local prefix = input:match "^'[<a-z],'[>a-z]" or input:match "^%d+,%d+"
+                    if prefix then
+                        local remainder = input:sub(#prefix + 1)
+                        if not remainder:match "[%s%.%/:\\\\]" then
+                            local new_matches = {}
+                            for _, m in ipairs(matches) do
+                                if not vim.startswith(m, prefix) then
+                                    table.insert(new_matches, prefix .. m)
+                                else
+                                    table.insert(new_matches, m)
+                                end
+                            end
+                            matches = new_matches
+                        end
+                    end
+                end
+                update_ui_callback(matches)
+            end,
+            on_close = function()
+                cleanup_preview()
+                if opts and opts.on_close then
+                    opts.on_close()
+                end
+            end,
         }, opts or {})
     )
 end
