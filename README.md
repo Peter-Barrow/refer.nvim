@@ -25,6 +25,10 @@ https://github.com/user-attachments/assets/2f91247d-5db0-42e6-b487-b97abb5e8b86
 
 https://github.com/user-attachments/assets/3d31ddb8-abda-43c9-b62e-4b2d5b3ec890
 
+#### Macros
+
+https://github.com/user-attachments/assets/5b7be64e-e3f1-43c3-83d7-27c69b796cd1
+
 ### About
 
 `refer.nvim` is a minimalist picker for Neovim.
