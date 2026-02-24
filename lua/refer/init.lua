@@ -3,6 +3,15 @@ local Picker = require "refer.picker"
 ---@class ReferModule
 local M = {}
 
+setmetatable(M, {
+    __index = function(t, k)
+        if k == "_active_picker" then
+            return Picker.get_active()
+        end
+        return rawget(t, k)
+    end,
+})
+
 -- Detect fd command (handle fdfind on Ubuntu/Debian)
 local fd_cmd = "fd"
 if vim.fn.executable "fdfind" == 1 then

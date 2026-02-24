@@ -34,6 +34,9 @@ local subcommands = {
     LspServers = function(opts)
         require("refer.providers.lsp").lsp_servers(opts)
     end,
+    Macros = function(opts)
+        require("refer.providers.builtin").macros(opts)
+    end,
     Selection = function(opts)
         require("refer.providers.files").grep_word(opts)
     end,

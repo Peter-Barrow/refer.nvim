@@ -74,6 +74,12 @@ Picker.__index = Picker
 ---@type Picker|nil Currently active picker instance
 local active_picker = nil
 
+---Get the currently active picker instance
+---@return Picker|nil picker The active picker or nil
+function Picker.get_active()
+    return active_picker
+end
+
 ---Close any existing picker and clean up windows
 function Picker.close_existing()
     if active_picker then
