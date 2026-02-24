@@ -127,6 +127,7 @@ Use `:Refer <subcommand>` to launch pickers:
   - [Static List Picker](#static-list-picker)
   - [Async Command Picker](#async-command-picker)
   - [Enabling Previews for Custom Items](#enabling-previews-for-custom-items)
+- [Creating Extensions](#creating-extensions)
 
 ### Replacing `vim.ui.select`
 Use `refer` as the interface for `vim.ui.select` (used by code actions and
@@ -394,6 +395,25 @@ refer.pick(
     }
 )
 ```
+
+## Creating Extensions
+
+You can register new `:Refer` subcommands from your `init.lua` or from
+third-party plugins.
+
+```lua
+local refer = require("refer")
+
+refer.add_command("MyPicker", function(opts)
+    refer.pick({ "Choice A", "Choice B" }, function(selection)
+        print("Selected: " .. selection)
+    end, {
+        prompt = "My Picker > "
+    })
+end)
+```
+
+Now you can run `:Refer MyPicker` and it will appear in tab completion.
 
 ## Configuration Reference
 

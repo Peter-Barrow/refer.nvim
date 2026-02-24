@@ -3,6 +3,25 @@ local Picker = require "refer.picker"
 ---@class ReferModule
 local M = {}
 
+---@type table<string, function> The central registry of subcommands
+M._registry = {}
+
+---Register a new subcommand for :Refer
+---@param name string The name of the command (e.g., "GitStatus")
+---@param fn function The function to execute when the command is run
+function M.add_command(name, fn)
+    if M._registry[name] then
+        vim.notify("Refer: Overwriting existing command '" .. name .. "'", vim.log.levels.WARN)
+    end
+    M._registry[name] = fn
+end
+
+---Get all registered commands (useful for completion)
+---@return table<string, function>
+function M.get_commands()
+    return M._registry
+end
+
 setmetatable(M, {
     __index = function(t, k)
         if k == "_active_picker" then
