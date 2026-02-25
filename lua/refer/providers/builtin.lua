@@ -328,12 +328,26 @@ function M.macros(opts)
 
     local function edit_macro(reg, initial_content, original_win, original_buf, parent_opts)
         local preview_applied = false
+        local preview_view = nil
+        local preview_fold = nil
 
         local function cleanup_preview()
             if preview_applied then
                 vim.api.nvim_win_call(original_win, function()
                     pcall(vim.cmd, "silent! undo")
+                    if preview_view then
+                        vim.fn.winrestview(preview_view)
+                        preview_view = nil
+                    end
                 end)
+                if preview_fold then
+                    vim.wo[original_win].foldmethod = preview_fold.foldmethod
+                    vim.wo[original_win].foldexpr   = preview_fold.foldexpr
+                    vim.wo[original_win].foldenable = preview_fold.foldenable
+                    vim.wo[original_win].foldlevel  = preview_fold.foldlevel
+                    vim.wo[original_win].foldcolumn = preview_fold.foldcolumn
+                    preview_fold = nil
+                end
                 preview_applied = false
             end
         end
@@ -346,11 +360,23 @@ function M.macros(opts)
 
             vim.api.nvim_win_call(original_win, function()
                 vim.cmd "let &ul=&ul"
+                preview_fold = {
+                    foldmethod = vim.wo[original_win].foldmethod,
+                    foldexpr   = vim.wo[original_win].foldexpr,
+                    foldenable = vim.wo[original_win].foldenable,
+                    foldlevel  = vim.wo[original_win].foldlevel,
+                    foldcolumn = vim.wo[original_win].foldcolumn,
+                }
+                vim.wo[original_win].foldmethod = "manual"
+                vim.wo[original_win].foldexpr   = ""
+                vim.wo[original_win].foldenable = false
+                preview_view = vim.fn.winsaveview()
                 local termcodes = vim.api.nvim_replace_termcodes(input, true, true, true)
                 local ok, err = pcall(vim.cmd, "noautocmd keepjumps normal! " .. termcodes)
                 if ok then
                     preview_applied = true
                 else
+                    preview_view = nil
                     vim.notify("do_macro_preview failed: " .. tostring(err), vim.log.levels.WARN)
                 end
             end)
@@ -402,6 +428,17 @@ function M.macros(opts)
             preview = { enabled = false },
             keymaps = {
                 ["<CR>"] = "select_entry",
+                ["<C-r>"] = function(selection, builtin)
+                    if not selection or selection == "" then
+                        return
+                    end
+                    local reg = selection:sub(1, 1)
+                    vim.fn.setreg(reg, "")
+                    builtin.actions.close()
+                    vim.schedule(function()
+                        edit_macro(reg, "", caller_win, caller_buf, opts)
+                    end)
+                end,
             },
         }, opts or {})
     )
