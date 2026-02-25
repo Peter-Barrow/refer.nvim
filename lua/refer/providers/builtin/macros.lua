@@ -34,9 +34,9 @@ local function macros(opts)
                 end)
                 if preview_fold then
                     vim.wo[original_win].foldmethod = preview_fold.foldmethod
-                    vim.wo[original_win].foldexpr   = preview_fold.foldexpr
+                    vim.wo[original_win].foldexpr = preview_fold.foldexpr
                     vim.wo[original_win].foldenable = preview_fold.foldenable
-                    vim.wo[original_win].foldlevel  = preview_fold.foldlevel
+                    vim.wo[original_win].foldlevel = preview_fold.foldlevel
                     vim.wo[original_win].foldcolumn = preview_fold.foldcolumn
                     preview_fold = nil
                 end
@@ -54,13 +54,13 @@ local function macros(opts)
                 vim.cmd "let &ul=&ul"
                 preview_fold = {
                     foldmethod = vim.wo[original_win].foldmethod,
-                    foldexpr   = vim.wo[original_win].foldexpr,
+                    foldexpr = vim.wo[original_win].foldexpr,
                     foldenable = vim.wo[original_win].foldenable,
-                    foldlevel  = vim.wo[original_win].foldlevel,
+                    foldlevel = vim.wo[original_win].foldlevel,
                     foldcolumn = vim.wo[original_win].foldcolumn,
                 }
                 vim.wo[original_win].foldmethod = "manual"
-                vim.wo[original_win].foldexpr   = ""
+                vim.wo[original_win].foldexpr = ""
                 vim.wo[original_win].foldenable = false
                 preview_view = vim.fn.winsaveview()
                 local termcodes = vim.api.nvim_replace_termcodes(input, true, true, true)
