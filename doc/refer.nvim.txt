@@ -1,4 +1,4 @@
-*refer.nvim.txt*       For Neovim >= 0.10.0      Last change: 2026 February 25
+*refer.nvim.txt*        For Neovim >= 0.10.0        Last change: 2026 March 02
 
 ==============================================================================
 Table of Contents                               *refer.nvim-table-of-contents*
