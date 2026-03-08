@@ -143,10 +143,13 @@ You can customize key bindings inside the picker window.
 ```lua
 require("refer").setup({
     keymaps = {
-        -- Bind to a built-in action name
-        ["<C-x>"] = "close", 
-        
-        -- Or use a custom function
+        -- Bind to a built-in action name (plain string — legacy format, still supported)
+        ["<C-x>"] = "close",
+
+        -- Bind to a built-in action with a description (new format, used by default keymaps)
+        ["<C-z>"] = { action = "close", desc = "Close picker" },
+
+        -- Or use a custom function (desc is optional)
         ["<C-y>"] = function(selection, builtin)
              print("You selected: " .. selection)
              builtin.actions.close()
@@ -155,20 +158,24 @@ require("refer").setup({
 })
 ```
 
-**Default Keymaps:**  
+**Default Keymaps:**
 
-- `<Tab>`: Complete selection (common prefix)  
-- `<CR>`: Select entry  
-- `<C-n>`/`<Down>`: Next item  
-- `<C-p>`/`<Up>`: Previous item  
-- `<C-v>`: Toggle preview
-- `<C-u>`: Scroll preview up
-- `<C-d>`: Scroll preview down
-- `<C-s>`: Cycle sorters (blink -> lua -> native)
-- `<C-q>`: Send to Quickfix list  
-- `<C-g>`: (EXPERIMENTAL - Requires a WIP plugin) Send to "Grep" buffer
-  (Editable results)  
-- `<Esc>`/`<C-c>`: Close  
+| Key | Action | Description |
+| --- | ------ | ----------- |
+| `<Tab>` | `complete_selection` | Complete selection |
+| `<CR>` | `select_input` | Confirm selection |
+| `<C-n>` / `<Down>` | `next_item` | Next item |
+| `<C-p>` / `<Up>` | `prev_item` | Previous item |
+| `<C-v>` | `toggle_preview` | Toggle preview |
+| `<C-u>` | `scroll_preview_up` | Scroll preview up |
+| `<C-d>` | `scroll_preview_down` | Scroll preview down |
+| `<C-s>` | `cycle_sorter` | Cycle sorter |
+| `<C-q>` | `send_to_qf` | Send to quickfix |
+| `<C-g>` | `send_to_grep` | Send to grep buffer (experimental) |
+| `<M-a>` | `select_all` | Select all |
+| `<M-d>` | `deselect_all` | Deselect all |
+| `<M-t>` | `toggle_all` | Toggle all marks |
+| `<Esc>` / `<C-c>` | `close` | Close picker |
 
 ### Bring Your Own Fuzzy (Custom Sorters)
 You can define custom sorting algorithms. For example, a simple prefix matcher:

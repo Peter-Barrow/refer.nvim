@@ -453,12 +453,6 @@ end
 function Picker:setup_keymaps()
     local keymaps = self.opts.keymaps or {}
 
-    ---@param key string Key to map
-    ---@param func function Callback function
-    local function map(key, func)
-        vim.keymap.set("i", key, func, { buffer = self.input_buf })
-    end
-
     local parameters = {
         original_win = self.original_win,
         original_buf = self.original_buf,
@@ -466,12 +460,24 @@ function Picker:setup_keymaps()
     }
 
     for key, handler in pairs(keymaps) do
+        -- handler can be:
+        --   string               -> action name (legacy / user-supplied plain string)
+        --   { action, desc }     -> action name + description (default format)
+        --   function             -> direct callback (user-supplied)
+        local action_name, desc
         if type(handler) == "string" then
-            if self.actions[handler] then
-                map(key, self.actions[handler])
+            action_name = handler
+        elseif type(handler) == "table" then
+            action_name = handler.action
+            desc = handler.desc
+        end
+
+        if action_name then
+            if self.actions[action_name] then
+                vim.keymap.set("i", key, self.actions[action_name], { buffer = self.input_buf, desc = desc })
             end
         elseif type(handler) == "function" then
-            map(key, function()
+            vim.keymap.set("i", key, function()
                 local selection = self.current_matches[self.selected_index]
                 ---@type BuiltinContext
                 local builtin = {
@@ -481,7 +487,7 @@ function Picker:setup_keymaps()
                     marked = self.marked,
                 }
                 handler(selection, builtin)
-            end)
+            end, { buffer = self.input_buf, desc = desc })
         end
     end
 end
