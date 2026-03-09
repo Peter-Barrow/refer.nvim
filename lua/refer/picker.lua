@@ -259,14 +259,17 @@ end
 
 ---Show the picker UI
 function Picker:show()
-    local input_buf, _ = self.ui:create_windows()
+    local initial_count = 0
+    if type(self.items_or_provider) == "table" then
+        initial_count = #self.items_or_provider
+    end
+    local input_buf, _ = self.ui:create_windows(initial_count)
     self.input_buf = input_buf
 
     if self.opts.default_text then
         self.ui:update_input { self.opts.default_text }
     end
 
-    -- Setup actions and keymaps
     self:setup_actions()
     self:setup_keymaps()
     self:setup_autocmds()

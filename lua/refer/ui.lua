@@ -45,9 +45,10 @@ function UI:get_height(count)
 end
 
 ---Create picker windows
+---@param initial_count number|nil Initial number of items to pre-size the results window
 ---@return number input_buf Input buffer handle
 ---@return number input_win Input window handle
-function UI:create_windows()
+function UI:create_windows(initial_count)
     self.input_buf = api.nvim_create_buf(false, true)
     self.results_buf = api.nvim_create_buf(false, true)
 
@@ -59,6 +60,8 @@ function UI:create_windows()
         input_pos = self.opts.ui.input_position
     end
 
+    local initial_height = self:get_height(initial_count or 0)
+
     if input_pos == "bottom" then
         vim.cmd "botright 1split"
         self.input_win = api.nvim_get_current_win()
@@ -66,12 +69,20 @@ function UI:create_windows()
         self:_configure_window(self.input_win)
         vim.wo[self.input_win].winfixheight = true
 
-        vim.cmd("leftabove " .. self:get_height(0) .. "split")
+        vim.cmd("leftabove " .. initial_height .. "split")
         self.results_win = api.nvim_get_current_win()
         api.nvim_win_set_buf(self.results_win, self.results_buf)
         self:_configure_window(self.results_win)
+
+        -- Force correct heights after Neovim's automatic split redistribution
+        if api.nvim_win_is_valid(self.results_win) then
+            api.nvim_win_set_height(self.results_win, initial_height)
+        end
+        if api.nvim_win_is_valid(self.input_win) then
+            api.nvim_win_set_height(self.input_win, 1)
+        end
     else
-        vim.cmd("botright" .. " " .. self:get_height(0) .. "split")
+        vim.cmd("botright " .. initial_height .. "split")
         self.results_win = api.nvim_get_current_win()
         api.nvim_win_set_buf(self.results_win, self.results_buf)
         self:_configure_window(self.results_win)
@@ -82,6 +93,14 @@ function UI:create_windows()
         self:_configure_window(self.input_win)
         vim.wo[self.input_win].winfixheight = true
         vim.cmd "resize 1"
+
+        -- Force correct heights after Neovim's automatic split redistribution
+        if api.nvim_win_is_valid(self.results_win) then
+            api.nvim_win_set_height(self.results_win, initial_height)
+        end
+        if api.nvim_win_is_valid(self.input_win) then
+            api.nvim_win_set_height(self.input_win, 1)
+        end
     end
 
     api.nvim_set_current_win(self.input_win)
