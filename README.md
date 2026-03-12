@@ -144,10 +144,10 @@ You can customize key bindings inside the picker window.
 ```lua
 require("refer").setup({
     keymaps = {
-        -- Bind to a built-in action name (plain string — legacy format, still supported)
+        -- Bind to a built-in action name
         ["<C-x>"] = "close",
 
-        -- Bind to a built-in action with a description (new format, used by default keymaps)
+        -- Bind to a built-in action with a description
         ["<C-z>"] = { action = "close", desc = "Close picker" },
 
         -- Or use a custom function (desc is optional)
