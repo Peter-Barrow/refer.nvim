@@ -41,6 +41,9 @@ end)
 refer.add_command("Selection", function(opts)
     require("refer.providers.files").grep_word(opts)
 end)
+refer.add_command("Symbols", function(opts)
+    require("refer.providers.lsp").document_symbols(opts)
+end)
 
 vim.api.nvim_create_user_command("Refer", function(opts)
     local subcommand_key = opts.fargs[1]

@@ -115,6 +115,10 @@ function M.highlight_entry(buf, ns, line_idx, line, highlight_code, opts)
             end
         end
     end
+
+    if opts and type(opts.highlight_fn) == "function" then
+        opts.highlight_fn(buf, ns, line_idx, line)
+    end
 end
 
 ---Highlight code content with treesitter

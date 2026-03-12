@@ -210,7 +210,11 @@ function UI:render(matches, selected_index, marked)
 
     for i, line in ipairs(visible_matches) do
         local line_idx = i - 1
-        highlight.highlight_entry(self.results_buf, self.ns_id, line_idx, line, true, self.opts)
+        local hl_code = true
+        if self.opts.highlight_code ~= nil then
+            hl_code = self.opts.highlight_code
+        end
+        highlight.highlight_entry(self.results_buf, self.ns_id, line_idx, line, hl_code, self.opts)
 
         if marked and marked[line] then
             local mark_char = "●"

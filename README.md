@@ -112,6 +112,7 @@ Use `:Refer <subcommand>` to launch pickers:
 | `Definitions` | Go to LSP definition for symbol under cursor |
 | `Implementations` | Go to LSP implementation for symbol under cursor |
 | `Declarations` | Go to LSP declaration for symbol under cursor |
+| `Symbols`     | List LSP document symbols for current buffer |
 | `LspServers`  | Manage LSP servers (start/stop)              |
 | `Macros`      | Edit and preview Vim registers/macro content   |
 
