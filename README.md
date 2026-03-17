@@ -105,6 +105,7 @@ Use `:Refer <subcommand>` to launch pickers:
 | `Files`       | Fuzzy find files using `fd` (Async)          |
 | `Grep`        | Live grep using `ripgrep` (Async)            |
 | `Selection`   | Search for word under cursor or visual selection |
+| `Lines`       | Filter lines in the current buffer             |
 | `Buffers`     | Switch between open buffers                  |
 | `OldFiles`    | Browse recently opened files                 |
 | `Commands`    | Execute Vim commands interactively           |

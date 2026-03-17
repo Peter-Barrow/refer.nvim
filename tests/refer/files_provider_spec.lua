@@ -98,4 +98,71 @@ describe("refer.providers.files", function()
             assert.are.same("a[^/]*/.*b[^/]*/.*c[^/]*/.*d", files._build_path_regex "a/b/c/d")
         end)
     end)
+
+    describe("lines", function()
+        local refer = require "refer"
+
+        local function make_named_buf(lines, name)
+            local buf = vim.api.nvim_create_buf(false, true)
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+            vim.api.nvim_buf_set_name(buf, name)
+            return buf
+        end
+
+        local function capture_items(fn)
+            local captured = nil
+            local orig_pick = refer.pick
+            refer.pick = function(items, _, _)
+                captured = items
+                return {}
+            end
+            fn()
+            refer.pick = orig_pick
+            return captured
+        end
+
+        it("formats lines as grep-style entries", function()
+            local buf = make_named_buf({ "hello world", "foo bar" }, "/tmp/test_lines.lua")
+            vim.api.nvim_set_current_buf(buf)
+
+            local items = capture_items(function()
+                files.lines {}
+            end)
+
+            assert.are.same(2, #items)
+            assert.truthy(items[1]:match "^.-:1:1:hello world$")
+            assert.truthy(items[2]:match "^.-:2:1:foo bar$")
+
+            vim.api.nvim_buf_delete(buf, { force = true })
+        end)
+
+        it("handles empty lines in buffer", function()
+            local buf = make_named_buf({ "line1", "", "line3" }, "/tmp/test_empty.lua")
+            vim.api.nvim_set_current_buf(buf)
+
+            local items = capture_items(function()
+                files.lines {}
+            end)
+
+            assert.are.same(3, #items)
+            assert.truthy(items[2]:match "^.-:2:1:$")
+
+            vim.api.nvim_buf_delete(buf, { force = true })
+        end)
+
+        it("handles unnamed buffer", function()
+            local buf = vim.api.nvim_create_buf(false, true)
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "only line" })
+            vim.api.nvim_set_current_buf(buf)
+
+            local items = capture_items(function()
+                files.lines {}
+            end)
+
+            assert.are.same(1, #items)
+            assert.truthy(items[1]:match "^%[No Name%]:1:1:only line$")
+
+            vim.api.nvim_buf_delete(buf, { force = true })
+        end)
+    end)
 end)

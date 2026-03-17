@@ -195,6 +195,41 @@ function M.grep_word(opts)
     return picker
 end
 
+---Open a lines picker for the current buffer
+---All lines are collected synchronously and filtered interactively
+---@param opts? table Options
+function M.lines(opts)
+    opts = opts or {}
+
+    local bufnr = vim.api.nvim_get_current_buf()
+    local raw_name = vim.api.nvim_buf_get_name(bufnr)
+    local filename = (raw_name and raw_name ~= "") and util.get_relative_path(raw_name) or "[No Name]"
+
+    local raw_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local items = {}
+    for lnum, line in ipairs(raw_lines) do
+        table.insert(items, filename .. ":" .. lnum .. ":1:" .. line)
+    end
+
+    return refer.pick(
+        items,
+        nil,
+        vim.tbl_deep_extend("force", {
+            prompt = "Lines > ",
+            keymaps = {
+                ["<Tab>"] = "toggle_mark",
+                ["<CR>"] = "select_entry",
+            },
+            parser = util.parsers.grep,
+            on_select = function(selection, data)
+                if data and data.lnum then
+                    vim.api.nvim_win_set_cursor(0, { data.lnum, (data.col or 1) - 1 })
+                end
+            end,
+        }, opts)
+    )
+end
+
 -- Exposed for testing (internal API, not for external use)
 M._escape_fd_regex = escape_fd_regex
 M._build_path_regex = build_path_regex
