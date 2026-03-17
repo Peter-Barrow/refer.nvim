@@ -385,6 +385,43 @@ function Picker:render()
     self:update_preview()
 end
 
+---Fast-path navigation: move selection by delta (+1 or -1) without a full redraw.
+---Falls back to full render() if the visible window needs to scroll.
+---@param delta number +1 for next, -1 for prev
+function Picker:navigate(delta)
+    local total = #self.current_matches
+    if total == 0 then return end
+
+    local old_idx = self.selected_index
+    local new_idx
+
+    if self.opts.ui and self.opts.ui.reverse_result then
+        if delta > 0 then
+            new_idx = ((old_idx - 2) % total) + 1
+        else
+            new_idx = (old_idx % total) + 1
+        end
+    else
+        if delta > 0 then
+            new_idx = (old_idx % total) + 1
+        else
+            new_idx = ((old_idx - 2) % total) + 1
+        end
+    end
+
+    self.selected_index = new_idx
+
+    local selected_text = self.current_matches[new_idx] or ""
+    local count_str = string.format("%d/%d ", new_idx, total)
+
+    local fast_ok = self.ui:update_selection(old_idx, new_idx, total, selected_text, count_str)
+    if fast_ok == false then
+        self.ui:render(self.current_matches, self.selected_index, self.marked)
+    end
+
+    self:update_preview()
+end
+
 ---Refresh matches based on current input
 function Picker:refresh()
     if self.debounce_timer then

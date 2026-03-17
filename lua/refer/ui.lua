@@ -6,8 +6,12 @@ local M = {}
 ---@class ReferUI
 ---@field base_prompt string The prompt text to display
 ---@field opts table Options table
----@field ns_id number Namespace ID for extmarks
+---@field ns_cursor number Namespace ID for cursor/selection highlight extmarks
+---@field ns_matches number Namespace ID for match/syntax highlight extmarks
+---@field ns_marks number Namespace ID for multi-selection mark extmarks
+---@field ns_id number Alias for ns_matches (backward compat for highlight.lua)
 ---@field prompt_ns number Namespace ID for prompt extmark
+---@field is_rendering boolean Guard flag to prevent CursorMoved re-entrancy
 ---@field input_buf number|nil Input buffer handle
 ---@field input_win number|nil Input window handle
 ---@field results_buf number|nil Results buffer handle
@@ -24,8 +28,12 @@ function M.new(prompt_text, opts)
     local self = setmetatable({}, UI)
     self.base_prompt = prompt_text
     self.opts = opts or {}
-    self.ns_id = api.nvim_create_namespace "refer"
-    self.prompt_ns = api.nvim_create_namespace "refer_prompt"
+    self.ns_cursor  = api.nvim_create_namespace "refer_cursor"
+    self.ns_matches = api.nvim_create_namespace "refer_matches"
+    self.ns_marks   = api.nvim_create_namespace "refer_marks"
+    self.ns_id      = self.ns_matches  -- backward-compat alias used by highlight.lua
+    self.prompt_ns  = api.nvim_create_namespace "refer_prompt"
+    self.is_rendering = false
     return self
 end
 
@@ -153,6 +161,8 @@ end
 ---@param selected_index number Currently selected index
 ---@param marked table<string, boolean>|nil Map of marked items
 function UI:render(matches, selected_index, marked)
+    self.is_rendering = true
+
     local total = #matches
     local current = selected_index
 
@@ -176,6 +186,7 @@ function UI:render(matches, selected_index, marked)
 
     if total == 0 then
         api.nvim_buf_set_lines(self.results_buf, 0, -1, false, { " " })
+        self.is_rendering = false
         return
     end
 
@@ -206,7 +217,11 @@ function UI:render(matches, selected_index, marked)
     end
 
     api.nvim_buf_set_lines(self.results_buf, 0, -1, false, visible_matches)
-    api.nvim_buf_clear_namespace(self.results_buf, self.ns_id, 0, -1)
+
+    -- Clear each namespace separately so targeted clears are possible elsewhere
+    api.nvim_buf_clear_namespace(self.results_buf, self.ns_cursor,  0, -1)
+    api.nvim_buf_clear_namespace(self.results_buf, self.ns_matches, 0, -1)
+    api.nvim_buf_clear_namespace(self.results_buf, self.ns_marks,   0, -1)
 
     for i, line in ipairs(visible_matches) do
         local line_idx = i - 1
@@ -214,7 +229,8 @@ function UI:render(matches, selected_index, marked)
         if self.opts.highlight_code ~= nil then
             hl_code = self.opts.highlight_code
         end
-        highlight.highlight_entry(self.results_buf, self.ns_id, line_idx, line, hl_code, self.opts)
+        -- ns_matches (== ns_id) is passed so highlight.lua continues to work unchanged
+        highlight.highlight_entry(self.results_buf, self.ns_matches, line_idx, line, hl_code, self.opts)
 
         if marked and marked[line] then
             local mark_char = "●"
@@ -224,7 +240,7 @@ function UI:render(matches, selected_index, marked)
                 mark_hl = self.opts.ui.mark_hl or mark_hl
             end
 
-            api.nvim_buf_set_extmark(self.results_buf, self.ns_id, line_idx, 0, {
+            api.nvim_buf_set_extmark(self.results_buf, self.ns_marks, line_idx, 0, {
                 sign_text = mark_char,
                 sign_hl_group = mark_hl,
                 priority = 105,
@@ -245,7 +261,8 @@ function UI:render(matches, selected_index, marked)
             selection_hl = self.opts.ui.highlights.selection
         end
 
-        api.nvim_buf_set_extmark(self.results_buf, self.ns_id, relative_selected_idx - 1, 0, {
+        -- Selection highlight goes into ns_cursor for targeted clear on navigation
+        api.nvim_buf_set_extmark(self.results_buf, self.ns_cursor, relative_selected_idx - 1, 0, {
             end_row = relative_selected_idx - 1,
             end_col = #selected_text,
             hl_group = selection_hl,
@@ -253,6 +270,95 @@ function UI:render(matches, selected_index, marked)
         })
         pcall(api.nvim_win_set_cursor, self.results_win, { relative_selected_idx, 0 })
     end
+
+    self.is_rendering = false
+end
+
+---Fast path: update only the selection highlight without redrawing the buffer.
+---Called by the picker for pure up/down navigation (no query or items change).
+---@param old_abs_idx number Previous selected_index (1-based, absolute in matches list)
+---@param new_abs_idx number New selected_index (1-based, absolute in matches list)
+---@param total number Total number of matches
+---@param selected_text string The text of the newly selected line (for hl end_col)
+---@param count_str string Updated "N/M " prompt prefix
+function UI:update_selection(old_abs_idx, new_abs_idx, total, selected_text, count_str)
+    if self.is_rendering then return end
+    if not self.results_buf or not api.nvim_buf_is_valid(self.results_buf) then return end
+    if not self.results_win or not api.nvim_win_is_valid(self.results_win) then return end
+
+    self.is_rendering = true
+
+    -- Update prompt count
+    self:update_prompt_virtual_text(count_str .. self.base_prompt)
+
+    local win_height = self:get_height(total)
+    local reverse_result = self.opts.ui and self.opts.ui.reverse_result
+
+    -- Compute the visible window bounds (mirrors render() logic)
+    local start_idx = 1
+    local end_idx = total
+    if total > win_height then
+        local half_height = math.floor(win_height / 2)
+        start_idx = math.max(1, new_abs_idx - half_height)
+        end_idx = math.min(total, start_idx + win_height - 1)
+        if end_idx - start_idx + 1 < win_height then
+            start_idx = math.max(1, end_idx - win_height + 1)
+        end
+    end
+
+    -- Check whether the visible window shifted — if so, fall back to full render
+    local old_start_idx = start_idx
+    if total > win_height then
+        local half_height = math.floor(win_height / 2)
+        old_start_idx = math.max(1, old_abs_idx - half_height)
+        local old_end_idx = math.min(total, old_start_idx + win_height - 1)
+        if old_end_idx - old_start_idx + 1 < win_height then
+            old_start_idx = math.max(1, old_end_idx - win_height + 1)
+        end
+    end
+
+    if old_start_idx ~= start_idx then
+        -- Visible window scrolled — need a full redraw; caller should call render() instead.
+        -- We signal this by returning false so Picker:navigate() knows to fall back.
+        self.is_rendering = false
+        return false
+    end
+
+    -- Compute relative (buffer-row) indices
+    local old_rel, new_rel
+    if reverse_result then
+        old_rel = end_idx - old_abs_idx + 1
+        new_rel = end_idx - new_abs_idx + 1
+    else
+        old_rel = old_abs_idx - start_idx + 1
+        new_rel = new_abs_idx - start_idx + 1
+    end
+
+    -- Clear old cursor highlight (only the one row)
+    if old_rel >= 1 then
+        api.nvim_buf_clear_namespace(self.results_buf, self.ns_cursor, old_rel - 1, old_rel)
+    end
+
+    -- Apply new cursor highlight
+    local buf_line_count = api.nvim_buf_line_count(self.results_buf)
+    if new_rel >= 1 and new_rel <= (end_idx - start_idx + 1) and (new_rel - 1) < buf_line_count then
+        local selection_hl = "Visual"
+        if self.opts.ui and self.opts.ui.highlights and self.opts.ui.highlights.selection then
+            selection_hl = self.opts.ui.highlights.selection
+        end
+        -- Use actual buffer line length to avoid end_col/end_row out-of-range errors
+        local buf_line = api.nvim_buf_get_lines(self.results_buf, new_rel - 1, new_rel, false)[1] or ""
+        api.nvim_buf_set_extmark(self.results_buf, self.ns_cursor, new_rel - 1, 0, {
+            end_row = new_rel - 1,
+            end_col = #buf_line,
+            hl_group = selection_hl,
+            priority = 100,
+        })
+        pcall(api.nvim_win_set_cursor, self.results_win, { new_rel, 0 })
+    end
+
+    self.is_rendering = false
+    return true
 end
 
 ---Set a new prompt text

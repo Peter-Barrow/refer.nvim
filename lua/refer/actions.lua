@@ -14,25 +14,11 @@ function M.get_defaults(picker)
         end,
 
         next_item = function()
-            if #picker.current_matches > 0 then
-                if picker.opts.ui and picker.opts.ui.reverse_result then
-                    picker.selected_index = ((picker.selected_index - 2) % #picker.current_matches) + 1
-                else
-                    picker.selected_index = (picker.selected_index % #picker.current_matches) + 1
-                end
-                picker:render()
-            end
+            picker:navigate(1)
         end,
 
         prev_item = function()
-            if #picker.current_matches > 0 then
-                if picker.opts.ui and picker.opts.ui.reverse_result then
-                    picker.selected_index = (picker.selected_index % #picker.current_matches) + 1
-                else
-                    picker.selected_index = ((picker.selected_index - 2) % #picker.current_matches) + 1
-                end
-                picker:render()
-            end
+            picker:navigate(-1)
         end,
 
         complete_selection = function()
