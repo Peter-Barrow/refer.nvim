@@ -7,6 +7,9 @@ local M = {}
 ---@type number|nil Cached preview buffer handle
 local preview_buf = nil
 
+---@type number Namespace ID for preview highlight
+local preview_ns = api.nvim_create_namespace "refer_preview"
+
 ---@type number Monotonically increasing counter; each show()/cleanup() increments it
 ---so stale async callbacks can self-cancel.
 local current_preview_id = 0
@@ -50,6 +53,14 @@ function M.show(opts)
             if lnum and col then
                 pcall(api.nvim_win_set_cursor, target_win, { lnum, col - 1 })
                 vim.cmd "normal! zz"
+                api.nvim_buf_clear_namespace(bufnr, preview_ns, 0, -1)
+                local line_len = #api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or 0
+                api.nvim_buf_set_extmark(bufnr, preview_ns, lnum - 1, 0, {
+                    end_row = lnum - 1,
+                    end_col = line_len,
+                    hl_group = "Search",
+                    priority = 100,
+                })
             end
         end)
         return
@@ -139,6 +150,14 @@ function M.show(opts)
                         api.nvim_win_call(target_win, function()
                             pcall(api.nvim_win_set_cursor, target_win, { lnum, col - 1 })
                             vim.cmd "normal! zz"
+                            api.nvim_buf_clear_namespace(buf, preview_ns, 0, -1)
+                            local line_len = #api.nvim_buf_get_lines(buf, lnum - 1, lnum, false)[1] or 0
+                            api.nvim_buf_set_extmark(buf, preview_ns, lnum - 1, 0, {
+                                end_row = lnum - 1,
+                                end_col = line_len,
+                                hl_group = "Search",
+                                priority = 100,
+                            })
                         end)
                     end
                 end)
@@ -151,6 +170,7 @@ end
 function M.cleanup()
     current_preview_id = current_preview_id + 1
     if preview_buf and api.nvim_buf_is_valid(preview_buf) then
+        api.nvim_buf_clear_namespace(preview_buf, preview_ns, 0, -1)
         api.nvim_buf_delete(preview_buf, { force = true })
     end
     preview_buf = nil
