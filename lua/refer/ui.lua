@@ -28,11 +28,11 @@ function M.new(prompt_text, opts)
     local self = setmetatable({}, UI)
     self.base_prompt = prompt_text
     self.opts = opts or {}
-    self.ns_cursor  = api.nvim_create_namespace "refer_cursor"
+    self.ns_cursor = api.nvim_create_namespace "refer_cursor"
     self.ns_matches = api.nvim_create_namespace "refer_matches"
-    self.ns_marks   = api.nvim_create_namespace "refer_marks"
-    self.ns_id      = self.ns_matches  -- backward-compat alias used by highlight.lua
-    self.prompt_ns  = api.nvim_create_namespace "refer_prompt"
+    self.ns_marks = api.nvim_create_namespace "refer_marks"
+    self.ns_id = self.ns_matches -- backward-compat alias used by highlight.lua
+    self.prompt_ns = api.nvim_create_namespace "refer_prompt"
     self.is_rendering = false
     return self
 end
@@ -223,12 +223,25 @@ function UI:render(matches, selected_index, marked)
         end
     end
 
-    api.nvim_buf_set_lines(self.results_buf, 0, -1, false, visible_matches)
+    local current_lines = api.nvim_buf_get_lines(self.results_buf, 0, -1, false)
+    local current_count = #current_lines
+    local new_count = #visible_matches
 
-    -- Clear each namespace separately so targeted clears are possible elsewhere
-    api.nvim_buf_clear_namespace(self.results_buf, self.ns_cursor,  0, -1)
+    if current_count ~= new_count then
+        api.nvim_buf_set_lines(self.results_buf, 0, -1, false, visible_matches)
+    else
+        for i = 1, new_count do
+            local old_line = current_lines[i] or ""
+            local new_line = visible_matches[i] or ""
+            if old_line ~= new_line then
+                api.nvim_buf_set_lines(self.results_buf, i - 1, i, false, { new_line })
+            end
+        end
+    end
+
+    api.nvim_buf_clear_namespace(self.results_buf, self.ns_cursor, 0, -1)
     api.nvim_buf_clear_namespace(self.results_buf, self.ns_matches, 0, -1)
-    api.nvim_buf_clear_namespace(self.results_buf, self.ns_marks,   0, -1)
+    api.nvim_buf_clear_namespace(self.results_buf, self.ns_marks, 0, -1)
 
     for i, line in ipairs(visible_matches) do
         local line_idx = i - 1
@@ -289,9 +302,15 @@ end
 ---@param selected_text string The text of the newly selected line (for hl end_col)
 ---@param count_str string Updated "N/M " prompt prefix
 function UI:update_selection(old_abs_idx, new_abs_idx, total, selected_text, count_str)
-    if self.is_rendering then return end
-    if not self.results_buf or not api.nvim_buf_is_valid(self.results_buf) then return end
-    if not self.results_win or not api.nvim_win_is_valid(self.results_win) then return end
+    if self.is_rendering then
+        return
+    end
+    if not self.results_buf or not api.nvim_buf_is_valid(self.results_buf) then
+        return
+    end
+    if not self.results_win or not api.nvim_win_is_valid(self.results_win) then
+        return
+    end
 
     self.is_rendering = true
 

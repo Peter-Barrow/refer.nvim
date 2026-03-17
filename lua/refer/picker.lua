@@ -257,19 +257,23 @@ function Picker.new_async(command_generator, opts)
                 current_job = this_job
 
                 stream_render_timer = vim.uv.new_timer()
-                stream_render_timer:start(50, 50, vim.schedule_wrap(function()
-                    if my_gen ~= stream_gen then
-                        return
-                    end
-                    if current_job ~= this_job then
-                        return
-                    end
-                    local matches = output_lines
-                    if post_process then
-                        matches = post_process(output_lines, query)
-                    end
-                    update_ui_callback(matches)
-                end))
+                stream_render_timer:start(
+                    50,
+                    50,
+                    vim.schedule_wrap(function()
+                        if my_gen ~= stream_gen then
+                            return
+                        end
+                        if current_job ~= this_job then
+                            return
+                        end
+                        local matches = output_lines
+                        if post_process then
+                            matches = post_process(output_lines, query)
+                        end
+                        update_ui_callback(matches)
+                    end)
+                )
             end)
         )
     end
@@ -410,7 +414,9 @@ end
 ---@param delta number +1 for next, -1 for prev
 function Picker:navigate(delta)
     local total = #self.current_matches
-    if total == 0 then return end
+    if total == 0 then
+        return
+    end
 
     local old_idx = self.selected_index
     local new_idx
