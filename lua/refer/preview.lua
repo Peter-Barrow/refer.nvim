@@ -14,6 +14,9 @@ local preview_ns = api.nvim_create_namespace "refer_preview"
 ---so stale async callbacks can self-cancel.
 local current_preview_id = 0
 
+---@type number|nil Last real (non-scratch) buffer that received a preview highlight
+local last_highlighted_buf = nil
+
 ---Safely close a uv file descriptor, ignoring errors.
 ---@param fd integer
 local function safe_close(fd)
@@ -43,7 +46,6 @@ function M.show(opts)
         return
     end
 
-    -- Fast-path: buffer already loaded in memory — switch synchronously.
     local bufnr = vim.fn.bufnr(filename)
     if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
         api.nvim_win_call(target_win, function()
@@ -53,6 +55,9 @@ function M.show(opts)
             if lnum and col then
                 pcall(api.nvim_win_set_cursor, target_win, { lnum, col - 1 })
                 vim.cmd "normal! zz"
+                if last_highlighted_buf and api.nvim_buf_is_valid(last_highlighted_buf) then
+                    api.nvim_buf_clear_namespace(last_highlighted_buf, preview_ns, 0, -1)
+                end
                 api.nvim_buf_clear_namespace(bufnr, preview_ns, 0, -1)
                 local line_len = #api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or 0
                 api.nvim_buf_set_extmark(bufnr, preview_ns, lnum - 1, 0, {
@@ -61,12 +66,12 @@ function M.show(opts)
                     hl_group = "Search",
                     priority = 100,
                 })
+                last_highlighted_buf = bufnr
             end
         end)
         return
     end
 
-    -- Ensure the scratch preview buffer exists.
     if not preview_buf or not api.nvim_buf_is_valid(preview_buf) then
         preview_buf = api.nvim_create_buf(false, true)
         vim.bo[preview_buf].bufhidden = "hide"
@@ -78,14 +83,12 @@ function M.show(opts)
     local display_name = filename .. " (Preview)"
     pcall(api.nvim_buf_set_name, buf, display_name)
 
-    -- Synchronous binary check — no I/O deferral needed here.
     if util.is_binary(filename) then
         api.nvim_buf_set_lines(buf, 0, -1, false, { "[Binary File - Preview Disabled]" })
         api.nvim_win_set_buf(target_win, buf)
         return
     end
 
-    -- Async file read via vim.uv.
     vim.uv.fs_open(filename, "r", 438, function(err_open, fd)
         if err_open or not fd then
             return
@@ -97,7 +100,6 @@ function M.show(opts)
                 return
             end
 
-            -- Read only as many bytes as needed for max_lines (heuristic: 200 bytes/line).
             local read_size = math.min(stat.size, max_lines * 200)
 
             vim.uv.fs_read(fd, read_size, 0, function(err_read, data)
@@ -107,13 +109,11 @@ function M.show(opts)
                     return
                 end
 
-                -- Stale-check: a newer show()/cleanup() was called while we were reading.
                 if my_id ~= current_preview_id then
                     return
                 end
 
                 vim.schedule(function()
-                    -- Re-check inside vim.schedule in case picker closed during I/O.
                     if my_id ~= current_preview_id then
                         return
                     end
@@ -124,13 +124,11 @@ function M.show(opts)
                         return
                     end
 
-                    -- Split into lines and trim to max_lines.
                     local lines = vim.split(data, "\n", { plain = true })
                     if #lines > max_lines then
                         lines = vim.list_slice(lines, 1, max_lines)
                     end
 
-                    -- Strip embedded CR / newline characters.
                     for i, line in ipairs(lines) do
                         if line:find "[\r\n]" then
                             lines[i] = line:gsub("[\r\n]", " ")
@@ -169,6 +167,10 @@ end
 ---Clean up the preview buffer
 function M.cleanup()
     current_preview_id = current_preview_id + 1
+    if last_highlighted_buf and api.nvim_buf_is_valid(last_highlighted_buf) then
+        api.nvim_buf_clear_namespace(last_highlighted_buf, preview_ns, 0, -1)
+    end
+    last_highlighted_buf = nil
     if preview_buf and api.nvim_buf_is_valid(preview_buf) then
         api.nvim_buf_clear_namespace(preview_buf, preview_ns, 0, -1)
         api.nvim_buf_delete(preview_buf, { force = true })
