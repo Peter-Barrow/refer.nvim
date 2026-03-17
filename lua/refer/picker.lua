@@ -177,6 +177,8 @@ function Picker.new_async(command_generator, opts)
 
     local current_job = nil
     local async_timer = nil
+    local stream_render_timer = nil
+    local stream_gen = 0
 
     local function cleanup()
         if current_job then
@@ -188,6 +190,12 @@ function Picker.new_async(command_generator, opts)
             async_timer:close()
             async_timer = nil
         end
+        if stream_render_timer then
+            stream_render_timer:stop()
+            stream_render_timer:close()
+            stream_render_timer = nil
+        end
+        stream_gen = stream_gen + 1
     end
 
     opts.on_close = function()
@@ -223,7 +231,16 @@ function Picker.new_async(command_generator, opts)
                     return
                 end
 
+                stream_gen = stream_gen + 1
+                local my_gen = stream_gen
                 local output_lines = {}
+
+                if stream_render_timer then
+                    stream_render_timer:stop()
+                    stream_render_timer:close()
+                    stream_render_timer = nil
+                end
+
                 local this_job
 
                 this_job = vim.system(cmd, {
@@ -234,22 +251,25 @@ function Picker.new_async(command_generator, opts)
                             for _, line in ipairs(lines) do
                                 table.insert(output_lines, line)
                             end
-
-                            vim.schedule(function()
-                                if current_job ~= this_job then
-                                    return
-                                end
-
-                                local matches = output_lines
-                                if post_process then
-                                    matches = post_process(output_lines, query)
-                                end
-                                update_ui_callback(matches)
-                            end)
                         end
                     end,
                 })
                 current_job = this_job
+
+                stream_render_timer = vim.uv.new_timer()
+                stream_render_timer:start(50, 50, vim.schedule_wrap(function()
+                    if my_gen ~= stream_gen then
+                        return
+                    end
+                    if current_job ~= this_job then
+                        return
+                    end
+                    local matches = output_lines
+                    if post_process then
+                        matches = post_process(output_lines, query)
+                    end
+                    update_ui_callback(matches)
+                end))
             end)
         )
     end
@@ -447,6 +467,7 @@ function Picker:refresh()
             end
 
             if self.opts.on_change then
+                local first_render = true
                 self.opts.on_change(input, function(matches)
                     if api.nvim_get_current_line() ~= input then
                         return
@@ -457,7 +478,10 @@ function Picker:refresh()
                     end
 
                     self.current_matches = matches or {}
-                    self.selected_index = 1
+                    if first_render then
+                        self.selected_index = 1
+                        first_render = false
+                    end
                     self:render()
                 end)
                 return

@@ -76,6 +76,30 @@ describe("refer.pick_async", function()
         assert.are.same("bar_baz", picker.current_matches[2])
     end)
 
+    it("preserves selected_index across streaming timer ticks", function()
+        local generator = function(query)
+            return { "sh", "-c", "printf 'line1\\nline2\\nline3\\n'" }
+        end
+
+        picker = refer.pick_async(generator, nil, { debounce_ms = 10, min_query_len = 1 })
+
+        set_input(picker, "x")
+
+        vim.wait(500, function()
+            return #picker.current_matches >= 3
+        end)
+
+        assert.are.same(3, #picker.current_matches)
+        assert.are.same(1, picker.selected_index)
+
+        picker:navigate(1)
+        assert.are.same(2, picker.selected_index)
+
+        vim.wait(150)
+
+        assert.are.same(2, picker.selected_index)
+    end)
+
     it("respects minimum query length", function()
         local called = false
         local generator = function(query)
@@ -85,13 +109,13 @@ describe("refer.pick_async", function()
 
         picker = refer.pick_async(generator, nil, { debounce_ms = 10, min_query_len = 3 })
 
-        set_input(picker, "ab") -- Length 2, should not trigger
+        set_input(picker, "ab")
         vim.wait(100)
 
         assert.is_false(called)
         assert.are.same(0, #picker.current_matches)
 
-        set_input(picker, "abc") -- Length 3, should trigger
+        set_input(picker, "abc")
 
         vim.wait(500, function()
             return called and #picker.current_matches > 0

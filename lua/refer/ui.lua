@@ -147,8 +147,8 @@ function UI:update_prompt_virtual_text(text)
             hl_group = self.opts.ui.highlights.prompt
         end
 
-        api.nvim_buf_clear_namespace(self.input_buf, self.prompt_ns, 0, -1)
         api.nvim_buf_set_extmark(self.input_buf, self.prompt_ns, 0, 0, {
+            id = 1,
             virt_text = { { text, hl_group } },
             virt_text_pos = "inline",
             right_gravity = false,
@@ -182,7 +182,14 @@ function UI:render(matches, selected_index, marked)
         count_str = "0/0 "
     end
 
+    local input_cursor
+    if self.input_win and api.nvim_win_is_valid(self.input_win) then
+        input_cursor = api.nvim_win_get_cursor(self.input_win)
+    end
     self:update_prompt_virtual_text(count_str .. self.base_prompt)
+    if input_cursor and self.input_win and api.nvim_win_is_valid(self.input_win) then
+        pcall(api.nvim_win_set_cursor, self.input_win, input_cursor)
+    end
 
     if total == 0 then
         api.nvim_buf_set_lines(self.results_buf, 0, -1, false, { " " })
@@ -288,13 +295,18 @@ function UI:update_selection(old_abs_idx, new_abs_idx, total, selected_text, cou
 
     self.is_rendering = true
 
-    -- Update prompt count
+    local input_cursor
+    if self.input_win and api.nvim_win_is_valid(self.input_win) then
+        input_cursor = api.nvim_win_get_cursor(self.input_win)
+    end
     self:update_prompt_virtual_text(count_str .. self.base_prompt)
+    if input_cursor and self.input_win and api.nvim_win_is_valid(self.input_win) then
+        pcall(api.nvim_win_set_cursor, self.input_win, input_cursor)
+    end
 
     local win_height = self:get_height(total)
     local reverse_result = self.opts.ui and self.opts.ui.reverse_result
 
-    -- Compute the visible window bounds (mirrors render() logic)
     local start_idx = 1
     local end_idx = total
     if total > win_height then
@@ -306,7 +318,6 @@ function UI:update_selection(old_abs_idx, new_abs_idx, total, selected_text, cou
         end
     end
 
-    -- Check whether the visible window shifted — if so, fall back to full render
     local old_start_idx = start_idx
     if total > win_height then
         local half_height = math.floor(win_height / 2)
