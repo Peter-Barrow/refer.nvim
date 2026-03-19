@@ -23,6 +23,25 @@ local function safe_close(fd)
     vim.uv.fs_close(fd, function() end)
 end
 
+---Highlight a single line in a buffer with the preview namespace.
+---Silently does nothing if lnum is out of range for the buffer.
+---@param bufnr number
+---@param lnum number 1-indexed line number
+local function highlight_line(bufnr, lnum)
+    local total_lines = api.nvim_buf_line_count(bufnr)
+    if lnum < 1 or lnum > total_lines then
+        return
+    end
+    local line = api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or ""
+    local line_len = #line
+    api.nvim_buf_set_extmark(bufnr, preview_ns, lnum - 1, 0, {
+        end_row = lnum - 1,
+        end_col = line_len,
+        hl_group = "Search",
+        priority = 100,
+    })
+end
+
 ---@class PreviewOpts
 ---@field filename string File path to preview
 ---@field lnum? number Line number to jump to (1-indexed)
@@ -59,13 +78,7 @@ function M.show(opts)
                     api.nvim_buf_clear_namespace(last_highlighted_buf, preview_ns, 0, -1)
                 end
                 api.nvim_buf_clear_namespace(bufnr, preview_ns, 0, -1)
-                local line_len = #api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or 0
-                api.nvim_buf_set_extmark(bufnr, preview_ns, lnum - 1, 0, {
-                    end_row = lnum - 1,
-                    end_col = line_len,
-                    hl_group = "Search",
-                    priority = 100,
-                })
+                highlight_line(bufnr, lnum)
                 last_highlighted_buf = bufnr
             end
         end)
@@ -149,13 +162,7 @@ function M.show(opts)
                             pcall(api.nvim_win_set_cursor, target_win, { lnum, col - 1 })
                             vim.cmd "normal! zz"
                             api.nvim_buf_clear_namespace(buf, preview_ns, 0, -1)
-                            local line_len = #api.nvim_buf_get_lines(buf, lnum - 1, lnum, false)[1] or 0
-                            api.nvim_buf_set_extmark(buf, preview_ns, lnum - 1, 0, {
-                                end_row = lnum - 1,
-                                end_col = line_len,
-                                hl_group = "Search",
-                                priority = 100,
-                            })
+                            highlight_line(buf, lnum)
                         end)
                     end
                 end)

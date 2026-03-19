@@ -57,4 +57,93 @@ describe("refer.preview", function()
         marks_buf2 = vim.api.nvim_buf_get_extmarks(buf2, preview_ns, 0, -1, {})
         assert.are.same(0, #marks_buf2)
     end)
+
+    it("does not error when lnum is beyond the buffer line count (loaded buffer)", function()
+        assert.has_no.errors(function()
+            preview.show { filename = "/tmp/refer_test_preview_1.lua", lnum = 999, col = 1, target_win = win }
+        end)
+
+        local marks = vim.api.nvim_buf_get_extmarks(buf1, preview_ns, 0, -1, {})
+        assert.are.same(0, #marks)
+    end)
+
+    it("does not error when lnum is 0 or negative (loaded buffer)", function()
+        assert.has_no.errors(function()
+            preview.show { filename = "/tmp/refer_test_preview_1.lua", lnum = 0, col = 1, target_win = win }
+        end)
+
+        local marks = vim.api.nvim_buf_get_extmarks(buf1, preview_ns, 0, -1, {})
+        assert.are.same(0, #marks)
+    end)
+
+    it("still highlights a valid line in range normally", function()
+        preview.show { filename = "/tmp/refer_test_preview_1.lua", lnum = 2, col = 1, target_win = win }
+
+        local marks = vim.api.nvim_buf_get_extmarks(buf1, preview_ns, 0, -1, {})
+        assert.is_true(#marks > 0)
+        assert.are.same(1, marks[1][2])
+    end)
+end)
+
+describe("refer.preview async (file-read) path", function()
+    local tmpfile = "/tmp/refer_test_preview_async.txt"
+    local win
+
+    before_each(function()
+        local fd = io.open(tmpfile, "w")
+        fd:write "line one\nline two\nline three\n"
+        fd:close()
+
+        win = vim.api.nvim_get_current_win()
+    end)
+
+    after_each(function()
+        preview.cleanup()
+        os.remove(tmpfile)
+    end)
+
+    local preview_ns = vim.api.nvim_create_namespace "refer_preview"
+
+    it("does not error when lnum exceeds file line count (async path)", function()
+        assert.has_no.errors(function()
+            preview.show { filename = tmpfile, lnum = 9999, col = 1, target_win = win }
+        end)
+
+        vim.wait(500, function()
+            return vim.api.nvim_win_get_buf(win) ~= 0
+        end)
+
+        local preview_buf = vim.api.nvim_win_get_buf(win)
+        local marks = vim.api.nvim_buf_get_extmarks(preview_buf, preview_ns, 0, -1, {})
+        assert.are.same(0, #marks)
+    end)
+
+    it("does not error when lnum exceeds max_lines truncation (async path)", function()
+        assert.has_no.errors(function()
+            preview.show { filename = tmpfile, lnum = 3, col = 1, target_win = win, max_lines = 2 }
+        end)
+
+        vim.wait(500, function()
+            return vim.api.nvim_win_get_buf(win) ~= 0
+        end)
+
+        local preview_buf = vim.api.nvim_win_get_buf(win)
+        local marks = vim.api.nvim_buf_get_extmarks(preview_buf, preview_ns, 0, -1, {})
+        assert.are.same(0, #marks)
+    end)
+
+    it("highlights a valid line within the async preview buffer", function()
+        preview.show { filename = tmpfile, lnum = 2, col = 1, target_win = win }
+
+        vim.wait(500, function()
+            local buf = vim.api.nvim_win_get_buf(win)
+            local marks = vim.api.nvim_buf_get_extmarks(buf, preview_ns, 0, -1, {})
+            return #marks > 0
+        end)
+
+        local preview_buf = vim.api.nvim_win_get_buf(win)
+        local marks = vim.api.nvim_buf_get_extmarks(preview_buf, preview_ns, 0, -1, {})
+        assert.is_true(#marks > 0)
+        assert.are.same(1, marks[1][2])
+    end)
 end)
