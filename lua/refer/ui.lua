@@ -227,44 +227,67 @@ function UI:render(matches, selected_index, marked)
     local current_count = #current_lines
     local new_count = #visible_matches
 
+    local first_diff
     if current_count ~= new_count then
-        api.nvim_buf_set_lines(self.results_buf, 0, -1, false, visible_matches)
+        local min_count = math.min(current_count, new_count)
+        first_diff = min_count + 1
+        for i = 1, min_count do
+            if (current_lines[i] or "") ~= (visible_matches[i] or "") then
+                first_diff = i
+                break
+            end
+        end
+
+        local tail = {}
+        for i = first_diff, new_count do
+            table.insert(tail, visible_matches[i])
+        end
+        api.nvim_buf_set_lines(self.results_buf, first_diff - 1, -1, false, tail)
     else
+        first_diff = new_count + 1
         for i = 1, new_count do
             local old_line = current_lines[i] or ""
             local new_line = visible_matches[i] or ""
             if old_line ~= new_line then
+                if first_diff > i then
+                    first_diff = i
+                end
                 api.nvim_buf_set_lines(self.results_buf, i - 1, i, false, { new_line })
             end
         end
     end
 
     api.nvim_buf_clear_namespace(self.results_buf, self.ns_cursor, 0, -1)
-    api.nvim_buf_clear_namespace(self.results_buf, self.ns_matches, 0, -1)
-    api.nvim_buf_clear_namespace(self.results_buf, self.ns_marks, 0, -1)
+    if first_diff <= new_count then
+        api.nvim_buf_clear_namespace(self.results_buf, self.ns_matches, first_diff - 1, -1)
+        api.nvim_buf_clear_namespace(self.results_buf, self.ns_marks, first_diff - 1, -1)
+    end
 
-    for i, line in ipairs(visible_matches) do
-        local line_idx = i - 1
-        local hl_code = true
-        if self.opts.highlight_code ~= nil then
-            hl_code = self.opts.highlight_code
-        end
-        -- ns_matches (== ns_id) is passed so highlight.lua continues to work unchanged
-        highlight.highlight_entry(self.results_buf, self.ns_matches, line_idx, line, hl_code, self.opts)
-
-        if marked and marked[line] then
-            local mark_char = "●"
-            local mark_hl = "String"
-            if self.opts.ui then
-                mark_char = self.opts.ui.mark_char or mark_char
-                mark_hl = self.opts.ui.mark_hl or mark_hl
+    if first_diff <= new_count then
+        for i = first_diff, new_count do
+            local line = visible_matches[i]
+            local line_idx = i - 1
+            local hl_code = true
+            if self.opts.highlight_code ~= nil then
+                hl_code = self.opts.highlight_code
             end
+            -- ns_matches (== ns_id) is passed so highlight.lua continues to work unchanged
+            highlight.highlight_entry(self.results_buf, self.ns_matches, line_idx, line, hl_code, self.opts)
 
-            api.nvim_buf_set_extmark(self.results_buf, self.ns_marks, line_idx, 0, {
-                sign_text = mark_char,
-                sign_hl_group = mark_hl,
-                priority = 105,
-            })
+            if marked and marked[line] then
+                local mark_char = "●"
+                local mark_hl = "String"
+                if self.opts.ui then
+                    mark_char = self.opts.ui.mark_char or mark_char
+                    mark_hl = self.opts.ui.mark_hl or mark_hl
+                end
+
+                api.nvim_buf_set_extmark(self.results_buf, self.ns_marks, line_idx, 0, {
+                    sign_text = mark_char,
+                    sign_hl_group = mark_hl,
+                    priority = 105,
+                })
+            end
         end
     end
 
