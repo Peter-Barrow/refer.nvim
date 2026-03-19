@@ -188,7 +188,6 @@ function M.get_defaults(picker)
                 picker:update_preview()
                 vim.notify("Preview enabled", vim.log.levels.INFO)
             else
-                -- Restore original buffer
                 if api.nvim_win_is_valid(picker.original_win) and api.nvim_buf_is_valid(picker.original_buf) then
                     api.nvim_win_set_buf(picker.original_win, picker.original_buf)
                     api.nvim_win_set_cursor(picker.original_win, picker.original_cursor)

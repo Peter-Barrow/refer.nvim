@@ -100,7 +100,6 @@ function M.live_grep(opts)
         function(query)
             local grep_config = config.providers.grep or {}
 
-            -- If user provided a function, delegate completely
             if type(grep_config.grep_command) == "function" then
                 return grep_config.grep_command(query)
             end
@@ -150,7 +149,6 @@ function M.grep_word(opts)
         return
     end
 
-    -- Clean up query (e.g. remove newlines)
     local clean_query = query:gsub("\n", " ")
     local display_query = clean_query
     if #display_query > 20 then

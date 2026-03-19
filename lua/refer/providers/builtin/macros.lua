@@ -9,7 +9,6 @@ local function macros(opts)
         local reg = registers:sub(i, i)
         local val = vim.fn.getreg(reg)
         if val ~= "" then
-            -- Convert control chars to human readable <Esc>, <CR>, etc.
             local readable_val = vim.fn.keytrans(val)
             table.insert(items, string.format("%s: %s", reg, readable_val))
         end

@@ -281,7 +281,6 @@ function UI:render(matches, selected_index, marked)
             selection_hl = self.opts.ui.highlights.selection
         end
 
-        -- Selection highlight goes into ns_cursor for targeted clear on navigation
         api.nvim_buf_set_extmark(self.results_buf, self.ns_cursor, relative_selected_idx - 1, 0, {
             end_row = relative_selected_idx - 1,
             end_col = #selected_text,
@@ -348,13 +347,10 @@ function UI:update_selection(old_abs_idx, new_abs_idx, total, selected_text, cou
     end
 
     if old_start_idx ~= start_idx then
-        -- Visible window scrolled — need a full redraw; caller should call render() instead.
-        -- We signal this by returning false so Picker:navigate() knows to fall back.
         self.is_rendering = false
         return false
     end
 
-    -- Compute relative (buffer-row) indices
     local old_rel, new_rel
     if reverse_result then
         old_rel = end_idx - old_abs_idx + 1
@@ -364,19 +360,16 @@ function UI:update_selection(old_abs_idx, new_abs_idx, total, selected_text, cou
         new_rel = new_abs_idx - start_idx + 1
     end
 
-    -- Clear old cursor highlight (only the one row)
     if old_rel >= 1 then
         api.nvim_buf_clear_namespace(self.results_buf, self.ns_cursor, old_rel - 1, old_rel)
     end
 
-    -- Apply new cursor highlight
     local buf_line_count = api.nvim_buf_line_count(self.results_buf)
     if new_rel >= 1 and new_rel <= (end_idx - start_idx + 1) and (new_rel - 1) < buf_line_count then
         local selection_hl = "Visual"
         if self.opts.ui and self.opts.ui.highlights and self.opts.ui.highlights.selection then
             selection_hl = self.opts.ui.highlights.selection
         end
-        -- Use actual buffer line length to avoid end_col/end_row out-of-range errors
         local buf_line = api.nvim_buf_get_lines(self.results_buf, new_rel - 1, new_rel, false)[1] or ""
         api.nvim_buf_set_extmark(self.results_buf, self.ns_cursor, new_rel - 1, 0, {
             end_row = new_rel - 1,
