@@ -62,27 +62,24 @@ describe("refer regression provider edges", function()
             assert.are.same("select_entry", captured.opts.keymaps["<CR>"])
 
             local plain = captured.generator "alpha"
-            assert.are.same(
-                {
-                    "fd",
-                    "-H",
-                    "--type",
-                    "f",
-                    "--color",
-                    "never",
-                    "--exclude",
-                    ".git",
-                    "--exclude",
-                    ".jj",
-                    "--exclude",
-                    "node_modules",
-                    "--exclude",
-                    ".cache",
-                    "--",
-                    "al",
-                },
-                plain
-            )
+            assert.are.same({
+                "fd",
+                "-H",
+                "--type",
+                "f",
+                "--color",
+                "never",
+                "--exclude",
+                ".git",
+                "--exclude",
+                ".jj",
+                "--exclude",
+                "node_modules",
+                "--exclude",
+                ".cache",
+                "--",
+                "al",
+            }, plain)
 
             local path_query = captured.generator "lua/ref"
             assert.are.same("--full-path", path_query[#path_query - 2])
