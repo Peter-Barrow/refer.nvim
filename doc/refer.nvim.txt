@@ -1,4 +1,4 @@
-*refer.nvim.txt*        For Neovim >= 0.10.0        Last change: 2026 March 19
+*refer.nvim.txt*        For Neovim >= 0.10.0        Last change: 2026 March 20
 
 ==============================================================================
 Table of Contents                               *refer.nvim-table-of-contents*
@@ -118,22 +118,40 @@ COMMANDS                                                 *refer.nvim-commands*
 
 Use `:Refer <subcommand>` to launch pickers:
 
+  ------------------------------------------------------------------------
   Command           Description
-  ----------------- --------------------------------------------------
+  ----------------- ------------------------------------------------------
   Files             Fuzzy find files using fd (Async)
+
   Grep              Live grep using ripgrep (Async)
+
   Selection         Search for word under cursor or visual selection
+
   Lines             Filter lines in the current buffer
+
   Buffers           Switch between open buffers
+
   OldFiles          Browse recently opened files
+
   Commands          Execute Vim commands interactively
+
   References        List LSP references for symbol under cursor
+
   Definitions       Go to LSP definition for symbol under cursor
+
   Implementations   Go to LSP implementation for symbol under cursor
+
   Declarations      Go to LSP declaration for symbol under cursor
+
   Symbols           List LSP document symbols for current buffer
+
   LspServers        Manage LSP servers (start/stop)
+
   Macros            Edit and preview Vim registers/macro content
+
+  Extras FindFile   Emacs-style filesystem picker (requires
+                    extras.find_file = true in setup)
+  ------------------------------------------------------------------------
 
 TUTORIALS & ADVANCED USAGE             *refer.nvim-tutorials-&-advanced-usage*
 
@@ -148,6 +166,7 @@ TUTORIALS & ADVANCED USAGE             *refer.nvim-tutorials-&-advanced-usage*
     - |refer.nvim-async-command-picker|
     - |refer.nvim-enabling-previews-for-custom-items|
 - |refer.nvim-creating-extensions|
+- |refer.nvim-enabling-built-in-extras|
 
 
 REPLACING VIM.UI.SELECT ~
@@ -184,22 +203,52 @@ You can customize key bindings inside the picker window.
 
 **Default Keymaps:**
 
-  Key              Action                Description
-  ---------------- --------------------- ------------------------------------
-  <Tab>            complete_selection    Complete selection
-  <CR>             select_input          Confirm selection
-  <C-n> / <Down>   next_item             Next item
-  <C-p> / <Up>     prev_item             Previous item
-  <C-v>            toggle_preview        Toggle preview
-  <C-u>            scroll_preview_up     Scroll preview up
-  <C-d>            scroll_preview_down   Scroll preview down
-  <C-s>            cycle_sorter          Cycle sorter
-  <C-q>            send_to_qf            Send to quickfix
-  <C-g>            send_to_grep          Send to grep buffer (experimental)
-  <M-a>            select_all            Select all
-  <M-d>            deselect_all          Deselect all
-  <M-t>            toggle_all            Toggle all marks
-  <Esc> / <C-c>    close                 Close picker
+  ------------------------------------------------------------------------
+  Key        Action                Description
+  ---------- --------------------- ---------------------------------------
+  <Tab>      complete_selection    Complete selection
+
+  <CR>       select_input          Confirm selection
+
+  <C-n> /    next_item             Next item
+  <Down>                           
+
+  <C-p> /    prev_item             Previous item
+  <Up>                             
+
+  <C-v>      toggle_preview        Toggle preview
+
+  <C-u>      scroll_preview_up     Scroll preview up
+
+  <C-d>      scroll_preview_down   Scroll preview down
+
+  <C-s>      cycle_sorter          Cycle sorter
+
+  <C-q>      send_to_qf            Send to quickfix
+
+  <C-g>      send_to_grep          Send to grep buffer (experimental)
+
+  <M-a>      select_all            Select all
+
+  <M-d>      deselect_all          Deselect all
+
+  <M-t>      toggle_all            Toggle all marks
+
+  <Esc> /    close                 Close picker
+  <C-c>                            
+
+  —          edit_entry            Open selected item in current window
+
+  —          split_entry           Open selected item in a horizontal
+                                   split
+
+  —          vsplit_entry          Open selected item in a vertical split
+
+  —          tab_entry             Open selected item in a new tab
+
+  —          select_entry          Call on_select with item and its
+                                   attached data
+  ------------------------------------------------------------------------
 
 BRING YOUR OWN FUZZY (CUSTOM SORTERS) ~
 
@@ -310,6 +359,33 @@ STATIC LIST PICKER
                 end
             }
         }
+    )
+<
+
+
+STRUCTURED ITEMS (REFERITEM)
+
+Items passed to `pick()` can be plain strings **or** structured `ReferItem`
+tables of the form `{ text = string, data = any }`. When a structured item is
+selected, `data` is passed directly to your `on_select` callback — no parser
+needed.
+
+Plain strings continue to work unchanged; they are normalized automatically.
+
+>lua
+    local refer = require("refer")
+    
+    refer.pick(
+        {
+            { text = "src/main.lua",  data = { path = "src/main.lua",  lnum = 1 } },
+            { text = "src/util.lua",  data = { path = "src/util.lua",  lnum = 1 } },
+        },
+        function(selection, data)
+            -- `selection` is the display text; `data` is the attached table
+            vim.cmd("edit " .. data.path)
+            vim.api.nvim_win_set_cursor(0, { data.lnum, 0 })
+        end,
+        { prompt = "Jump > " }
     )
 <
 
@@ -443,6 +519,36 @@ heading is found.
 <
 
 
+ENABLING BUILT-IN EXTRAS ~
+
+`refer.nvim` ships with optional extras that are disabled by default. Enable
+them via `setup()`:
+
+>lua
+    require("refer").setup({
+        extras = {
+            find_file = true,
+        },
+    })
+<
+
+
+EXTRAS.FIND_FILE
+
+
+  Inspired by João Paulo <https://github.com/johnpgr>.
+  Link to config
+  <https://github.com/johnpgr/dotfiles/blob/ae2955439a43e4ed25859ca7c4da137e8e91a5a7/nvim/lua/plugins/refer.lua#L366C16-L366C46>.
+Registers `:Refer Extras FindFile` — an Emacs-style filesystem picker. It
+opens at your current working directory and lets you navigate your filesystem
+incrementally: selecting a directory descends into it, selecting a file opens
+it.
+
+  Key             Action
+  --------------- -------------------------------------
+  <CR>            Descend into directory or open file
+  <Esc> / <C-c>   Close picker
+
 CREATING EXTENSIONS                           *refer.nvim-creating-extensions*
 
 You can register new `:Refer` subcommands from your `init.lua` or from
@@ -512,6 +618,11 @@ The default configuration with all available options:
             },
         },
         
+        -- Extras (all disabled by default)
+        extras = {
+            find_file = false, -- set to true to register :Refer Extras FindFile
+        },
+    
         -- See "Tutorials" section for keymaps, custom_sorters, and custom_parsers
     })
 <
