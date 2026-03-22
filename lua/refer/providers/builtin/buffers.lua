@@ -43,33 +43,38 @@ local function buffers(opts)
                 ["<Tab>"] = "toggle_mark",
                 ["<CR>"] = "select_entry",
                 ["<C-x>"] = function(refer_item, builtin)
-                    -- refer_item is now a ReferItem table; extract data directly
-                    local data = (type(refer_item) == "table" and refer_item.data)
-                        or (util.parsers.buffer(type(refer_item) == "table" and refer_item.text or refer_item))
-                    if data and data.bufnr then
-                        local win = builtin.parameters.original_win
-                        if win and vim.api.nvim_win_is_valid(win) then
-                            local current_view_buf = vim.api.nvim_win_get_buf(win)
-                            if current_view_buf == data.bufnr then
-                                local scratch = vim.api.nvim_create_buf(false, true)
-                                vim.bo[scratch].bufhidden = "wipe"
-                                vim.api.nvim_win_set_buf(win, scratch)
-                            end
-                        end
-
-                        pcall(vim.api.nvim_buf_delete, data.bufnr, { force = true })
-
-                        local target_text = type(refer_item) == "table" and refer_item.text or refer_item
-                        for i, item in ipairs(items) do
-                            local item_text = type(item) == "table" and item.text or item
-                            if item_text == target_text then
-                                table.remove(items, i)
-                                break
-                            end
-                        end
-
-                        builtin.actions.refresh()
+                    local target_text = type(refer_item) == "table" and refer_item.text or refer_item
+                    local data = (type(refer_item) == "table" and refer_item.data) or (util.parsers.buffer(target_text))
+                    if not (data and data.bufnr) then
+                        return
                     end
+
+                    for i, item in ipairs(items) do
+                        local item_text = type(item) == "table" and item.text or item
+                        if item_text == target_text then
+                            table.remove(items, i)
+                            break
+                        end
+                    end
+
+                    local preview_was_enabled = builtin.picker.preview_enabled
+                    builtin.picker.preview_enabled = false
+
+                    builtin.picker:set_items(items)
+
+                    local win = builtin.parameters.original_win
+                    if win and vim.api.nvim_win_is_valid(win) then
+                        local current_view_buf = vim.api.nvim_win_get_buf(win)
+                        if current_view_buf == data.bufnr then
+                            local scratch = vim.api.nvim_create_buf(false, true)
+                            vim.bo[scratch].bufhidden = "wipe"
+                            vim.api.nvim_win_set_buf(win, scratch)
+                        end
+                    end
+
+                    pcall(vim.api.nvim_buf_delete, data.bufnr, { force = true })
+
+                    builtin.picker.preview_enabled = preview_was_enabled
                 end,
             },
             parser = util.parsers.buffer,

@@ -456,7 +456,8 @@ function Picker:navigate(delta)
 end
 
 ---Refresh matches based on current input
-function Picker:refresh()
+---@param force boolean If true, skip debounce timer and run immediately
+function Picker:refresh(force)
     if self.debounce_timer then
         self.debounce_timer:stop()
     else
@@ -464,9 +465,10 @@ function Picker:refresh()
     end
 
     local input = api.nvim_get_current_line()
+    local delay = force and 0 or 20
 
     self.debounce_timer:start(
-        20,
+        delay,
         0,
         vim.schedule_wrap(function()
             if self.debounce_timer then
@@ -523,7 +525,7 @@ function Picker:set_items(new_items)
     if self.use_blink then
         fuzzy.register_items(self.items_or_provider)
     end
-    self:refresh()
+    self:refresh(true)
 end
 
 ---Setup keymaps for the picker
