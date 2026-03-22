@@ -59,7 +59,7 @@ describe("refer regression provider edges", function()
 
             assert.are.same("files-picker", picker.kind)
             assert.are.same("Files > ", captured.opts.prompt)
-            assert.are.same("select_entry", captured.opts.keymaps["<CR>"])
+            assert.are.same("open_marked", captured.opts.keymaps["<CR>"])
 
             local plain = captured.generator "alpha"
             assert.are.same({
@@ -338,7 +338,7 @@ describe("refer regression provider edges", function()
             stub_single_client()
             pick_stub = stub(require "refer", "pick", function(items, on_select, opts)
                 assert.are.same("LSP References > ", opts.prompt)
-                assert.are.same("select_entry", opts.keymaps["<CR>"])
+                assert.are.same("open_marked", opts.keymaps["<CR>"])
                 assert.are.same(2, #items)
                 return { items = items }
             end)

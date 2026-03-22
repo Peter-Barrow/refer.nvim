@@ -19,7 +19,7 @@ local function old_files(opts)
             prompt = "Recent Files > ",
             keymaps = {
                 ["<Tab>"] = "toggle_mark",
-                ["<CR>"] = "select_entry",
+                ["<CR>"] = "open_marked",
             },
             parser = util.parsers.file,
             on_select = function(selection, data)

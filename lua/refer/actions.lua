@@ -90,6 +90,34 @@ function M.get_defaults(picker)
             picker.on_select(selection, data)
         end,
 
+        open_marked = function()
+            local marked_items = {}
+            for _, item in ipairs(picker.current_matches) do
+                local key = type(item) == "table" and item.text or item
+                if picker.marked[key] then
+                    table.insert(marked_items, item)
+                end
+            end
+
+            if #marked_items == 0 then
+                picker.actions.select_entry()
+                return
+            end
+
+            picker:close()
+
+            for _, item in ipairs(marked_items) do
+                local selection = type(item) == "table" and item.text or item
+                local data = (type(item) == "table" and item.data) or (picker.parser and picker.parser(selection))
+
+                if picker.on_select then
+                    picker.on_select(selection, data)
+                else
+                    util.jump_to_location(selection, data)
+                end
+            end
+        end,
+
         edit_entry = function()
             open_entry(nil)
         end,

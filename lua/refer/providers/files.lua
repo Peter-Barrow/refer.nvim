@@ -72,7 +72,7 @@ function M.files(opts)
             prompt = "Files > ",
             keymaps = {
                 ["<Tab>"] = "toggle_mark",
-                ["<CR>"] = "select_entry",
+                ["<CR>"] = "open_marked",
             },
             parser = util.parsers.file,
             on_select = function(selection, data)
@@ -118,7 +118,7 @@ function M.live_grep(opts)
             parser = util.parsers.grep,
             keymaps = {
                 ["<Tab>"] = "toggle_mark",
-                ["<CR>"] = "select_entry",
+                ["<CR>"] = "open_marked",
             },
         }, opts)
     )
@@ -170,7 +170,7 @@ function M.grep_word(opts)
             parser = util.parsers.grep,
             keymaps = {
                 ["<Tab>"] = "toggle_mark",
-                ["<CR>"] = "select_entry",
+                ["<CR>"] = "open_marked",
             },
         }, opts)
     )
@@ -216,7 +216,7 @@ function M.lines(opts)
             prompt = "Lines > ",
             keymaps = {
                 ["<Tab>"] = "toggle_mark",
-                ["<CR>"] = "select_entry",
+                ["<CR>"] = "open_marked",
             },
             parser = util.parsers.grep,
             on_select = function(selection, data)

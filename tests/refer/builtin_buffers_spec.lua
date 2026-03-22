@@ -157,6 +157,84 @@ describe("builtin.buffers", function()
         end
         assert.is_false(found_deleted)
     end)
+
+    it("removes all marked buffers from picker list when <C-x> is pressed", function()
+        local file1 = tmpdir .. "/marked1.lua"
+        local file2 = tmpdir .. "/marked2.lua"
+        local file3 = tmpdir .. "/kept.lua"
+        local files = {
+            { file1, "content1\n" },
+            { file2, "content2\n" },
+            { file3, "content3\n" },
+        }
+
+        for _, spec in ipairs(files) do
+            local f = io.open(spec[1], "w")
+            f:write(spec[2])
+            f:close()
+            vim.cmd("edit " .. vim.fn.fnameescape(spec[1]))
+        end
+
+        picker = builtin.buffers()
+
+        local item1, item2, item3
+        local buf1 = vim.fn.bufnr(file1)
+        local buf2 = vim.fn.bufnr(file2)
+        local buf3 = vim.fn.bufnr(file3)
+
+        for _, item in ipairs(picker.items_or_provider) do
+            local text = type(item) == "table" and item.text or item
+            if text:find("marked1.lua", 1, true) then
+                item1 = type(item) == "table" and item or { text = item }
+            elseif text:find("marked2.lua", 1, true) then
+                item2 = type(item) == "table" and item or { text = item }
+            elseif text:find("kept.lua", 1, true) then
+                item3 = type(item) == "table" and item or { text = item }
+            end
+        end
+
+        assert.is_not_nil(item1)
+        assert.is_not_nil(item2)
+        assert.is_not_nil(item3)
+
+        picker.marked[item1.text] = true
+        picker.marked[item2.text] = true
+
+        local builtin_ctx = {
+            picker = picker,
+            actions = picker.actions,
+            parameters = { original_win = vim.api.nvim_get_current_win() },
+            marked = picker.marked,
+        }
+
+        local keymap_handler = picker.opts.keymaps["<C-x>"]
+        assert.is_true(type(keymap_handler) == "function")
+        keymap_handler(item1, builtin_ctx)
+
+        assert.is_false(vim.api.nvim_buf_is_valid(buf1))
+        assert.is_false(vim.api.nvim_buf_is_valid(buf2))
+        assert.is_true(vim.api.nvim_buf_is_valid(buf3))
+
+        local found_marked1 = false
+        local found_marked2 = false
+        local found_kept = false
+        for _, item in ipairs(picker.items_or_provider) do
+            local text = type(item) == "table" and item.text or item
+            if text:find("marked1.lua", 1, true) then
+                found_marked1 = true
+            end
+            if text:find("marked2.lua", 1, true) then
+                found_marked2 = true
+            end
+            if text:find("kept.lua", 1, true) then
+                found_kept = true
+            end
+        end
+
+        assert.is_false(found_marked1)
+        assert.is_false(found_marked2)
+        assert.is_true(found_kept)
+    end)
 end)
 
 describe("builtin.old_files", function()

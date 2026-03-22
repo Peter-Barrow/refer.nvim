@@ -41,38 +41,74 @@ local function buffers(opts)
             prompt = "Buffers > ",
             keymaps = {
                 ["<Tab>"] = "toggle_mark",
-                ["<CR>"] = "select_entry",
+                ["<CR>"] = "open_marked",
                 ["<C-x>"] = function(refer_item, builtin)
-                    local target_text = type(refer_item) == "table" and refer_item.text or refer_item
-                    local data = (type(refer_item) == "table" and refer_item.data) or (util.parsers.buffer(target_text))
-                    if not (data and data.bufnr) then
-                        return
+                    local targets = {}
+                    for _, item in ipairs(items) do
+                        local key = type(item) == "table" and item.text or item
+                        if builtin.marked[key] then
+                            table.insert(targets, item)
+                        end
                     end
 
-                    for i, item in ipairs(items) do
-                        local item_text = type(item) == "table" and item.text or item
-                        if item_text == target_text then
-                            table.remove(items, i)
-                            break
+                    if #targets == 0 then
+                        local target_text = type(refer_item) == "table" and refer_item.text or refer_item
+                        local data = (type(refer_item) == "table" and refer_item.data)
+                            or (util.parsers.buffer(target_text))
+                        if not (data and data.bufnr) then
+                            return
                         end
+
+                        targets = { refer_item }
+                    end
+
+                    local target_keys = {}
+                    local target_bufnrs = {}
+                    for _, item in ipairs(targets) do
+                        local text = type(item) == "table" and item.text or item
+                        local data = (type(item) == "table" and item.data) or util.parsers.buffer(text)
+                        if data and data.bufnr then
+                            target_keys[text] = true
+                            table.insert(target_bufnrs, data.bufnr)
+                        end
+                    end
+
+                    if #target_bufnrs == 0 then
+                        return
                     end
 
                     local preview_was_enabled = builtin.picker.preview_enabled
                     builtin.picker.preview_enabled = false
 
-                    builtin.picker:set_items(items)
-
                     local win = builtin.parameters.original_win
                     if win and vim.api.nvim_win_is_valid(win) then
                         local current_view_buf = vim.api.nvim_win_get_buf(win)
-                        if current_view_buf == data.bufnr then
-                            local scratch = vim.api.nvim_create_buf(false, true)
-                            vim.bo[scratch].bufhidden = "wipe"
-                            vim.api.nvim_win_set_buf(win, scratch)
+                        for _, bufnr in ipairs(target_bufnrs) do
+                            if current_view_buf == bufnr then
+                                local scratch = vim.api.nvim_create_buf(false, true)
+                                vim.bo[scratch].bufhidden = "wipe"
+                                vim.api.nvim_win_set_buf(win, scratch)
+                                break
+                            end
                         end
                     end
 
-                    pcall(vim.api.nvim_buf_delete, data.bufnr, { force = true })
+                    for i = #items, 1, -1 do
+                        local item_text = type(items[i]) == "table" and items[i].text or items[i]
+                        if target_keys[item_text] then
+                            table.remove(items, i)
+                        end
+                    end
+
+                    builtin.picker:set_items(items)
+
+                    for key in pairs(target_keys) do
+                        builtin.marked[key] = nil
+                    end
+
+                    for _, bufnr in ipairs(target_bufnrs) do
+                        pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+                    end
 
                     builtin.picker.preview_enabled = preview_was_enabled
                 end,

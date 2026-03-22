@@ -88,4 +88,29 @@ describe("refer.bulk_actions", function()
         assert.is_true(#marks > 0)
         assert.are.same("● ", marks[1][4].sign_text)
     end)
+
+    it("open_marked falls back to current selection when no marks exist", function()
+        local selected = {}
+        picker.on_select = function(selection, _data)
+            table.insert(selected, selection)
+        end
+        picker.selected_index = 2
+
+        picker.actions.open_marked()
+
+        assert.are.same({ "item2" }, selected)
+    end)
+
+    it("open_marked opens all marked items in display order", function()
+        local selected = {}
+        picker.on_select = function(selection, _data)
+            table.insert(selected, selection)
+        end
+        picker.marked = { ["item1"] = true, ["item3"] = true }
+        picker.selected_index = 2
+
+        picker.actions.open_marked()
+
+        assert.are.same({ "item1", "item3" }, selected)
+    end)
 end)

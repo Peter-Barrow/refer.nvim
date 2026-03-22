@@ -79,7 +79,7 @@ local function lsp_request(method, label, title, opts, param_modifier)
                 prompt = title .. " > ",
                 keymaps = {
                     ["<Tab>"] = "toggle_mark",
-                    ["<CR>"] = "select_entry",
+                    ["<CR>"] = "open_marked",
                 },
                 parser = util.parsers.lsp,
             }, opts or {})
@@ -274,7 +274,7 @@ function M.document_symbols(opts)
                 prompt = "LSP Document Symbols > ",
                 keymaps = {
                     ["<Tab>"] = "toggle_mark",
-                    ["<CR>"] = "select_entry",
+                    ["<CR>"] = "open_marked",
                 },
                 parser = util.parsers.lsp,
                 highlight_code = false,
