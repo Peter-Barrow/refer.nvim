@@ -155,7 +155,10 @@ function M.document_symbols(opts)
         return
     end
 
-    if not client.supports_method "textDocument/documentSymbol" then
+    local supports_symbol = vim.fn.has "nvim-0.12" == 1 and client:supports_method "textDocument/documentSymbol"
+        or client.supports_method "textDocument/documentSymbol"
+
+    if not supports_symbol then
         vim.notify("Refer: LSP client does not support textDocument/documentSymbol", vim.log.levels.WARN)
         return
     end
