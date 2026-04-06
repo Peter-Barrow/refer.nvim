@@ -135,6 +135,7 @@ function UI:_configure_window(win_id)
     vim.wo[win_id].winhighlight = winhighlight
 
     vim.wo[win_id].fillchars = "eob: ,horiz: ,horizup: ,horizdown: ,vert: ,vertleft: ,vertright: ,verthoriz: "
+    vim.wo[win_id].statuscolumn = ""
     vim.wo[win_id].statusline = " "
 end
 
