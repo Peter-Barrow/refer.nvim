@@ -147,3 +147,37 @@ describe("refer.preview async (file-read) path", function()
         assert.are.same(1, marks[1][2])
     end)
 end)
+
+describe("refer.preview file not found", function()
+    local nonexistent_file = "/tmp/refer_nonexistent_file_12345.txt"
+    local win
+
+    before_each(function()
+        os.remove(nonexistent_file)
+        win = vim.api.nvim_get_current_win()
+    end)
+
+    after_each(function()
+        preview.cleanup()
+    end)
+
+    it("does not error when file does not exist", function()
+        assert.has_no.errors(function()
+            preview.show { filename = nonexistent_file, lnum = 1, col = 1, target_win = win }
+        end)
+    end)
+
+    it("shows 'File Not Found' message in preview buffer", function()
+        preview.show { filename = nonexistent_file, lnum = 1, col = 1, target_win = win }
+
+        vim.wait(100, function()
+            return vim.api.nvim_win_get_buf(win) ~= 0
+        end)
+
+        local preview_buf = vim.api.nvim_win_get_buf(win)
+        local lines = vim.api.nvim_buf_get_lines(preview_buf, 0, -1, false)
+        assert.is_true(#lines > 0)
+        assert.is_not_nil(lines[1]:find "%[File Not Found%]")
+        assert.is_not_nil(lines[1]:find(nonexistent_file, 1, true))
+    end)
+end)

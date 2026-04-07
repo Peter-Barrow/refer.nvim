@@ -102,6 +102,13 @@ function M.show(opts)
         return
     end
 
+    local stat = vim.uv.fs_stat(filename)
+    if not stat then
+        api.nvim_buf_set_lines(buf, 0, -1, false, { "[File Not Found] " .. filename })
+        api.nvim_win_set_buf(target_win, buf)
+        return
+    end
+
     vim.uv.fs_open(filename, "r", 438, function(err_open, fd)
         if err_open or not fd then
             return
