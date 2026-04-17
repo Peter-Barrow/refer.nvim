@@ -156,7 +156,7 @@ function M.document_symbols(opts)
     local clients = vim.lsp.get_clients { bufnr = 0 }
     local client = nil
     for _, c in ipairs(clients) do
-        if c:supports_method("textDocument/documentSymbol") then
+        if c:supports_method "textDocument/documentSymbol" then
             client = c
             break
         end
